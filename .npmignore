@@ -1,0 +1,11 @@
+.github/
+Tests/
+Tests.meta
+Tools/
+Tools.meta
+*.tgz
+*.tgz.meta
+Documentation~/Continuous Integration.md
+Documentation~/Continuous Integration.md.meta
+Documentation~/Validation.md
+Documentation~/Validation.md.meta
