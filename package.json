@@ -1,6 +1,6 @@
 {
   "name": "com.sahland.lumaflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "LumaFlow",
   "description": "A declarative, reactive C# UI framework built on Unity UI Toolkit.",
   "unity": "6000.0",

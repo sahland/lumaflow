@@ -4,6 +4,8 @@ All notable changes to LumaFlow are documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-07
+
 ### Added
 
 - Declarative widget mounting with stateful, stateless and reactive widgets.
