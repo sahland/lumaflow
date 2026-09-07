@@ -124,7 +124,6 @@ Runtime/              Framework runtime
 Editor/               Widget Inspector and Play Mode tools
 Samples~/             Importable examples
 Documentation~/       Guides and API reference
-ThirdPartyNotices/    Attribution for bundled assets
 ```
 
 ## Versioning
@@ -134,5 +133,6 @@ tracked in the [changelog](CHANGELOG.md) and compatibility notes.
 
 ## License
 
-LumaFlow is released under the [MIT License](LICENSE). Bundled Lucide icons are
-covered by their attribution in [ThirdPartyNotices/Lucide](ThirdPartyNotices/Lucide).
+The repository source is released under the [MIT License](LICENSE). LumaFlow
+includes a compact built-in icon catalog, and applications can supply custom
+icons through `IconData`.

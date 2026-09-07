@@ -142,7 +142,7 @@ fill/contain/cover fit. `CircleAvatar` clips an optional `Image` background and
 an arbitrary foreground widget. LumaFlow never loads or destroys those Unity
 assets; asset addressing, caching, and lifetime remain application concerns.
 
-`LumaIcons` exposes the built-in Lucide catalog and the LumaFlow brand mark.
+`LumaIcons` exposes the built-in icon catalog and the LumaFlow brand mark.
 Use `new Icon(LumaIcons.LumaFlow)` when the mark is part of a widget layout.
 
 For desktop interactive surfaces, `Pressable` also accepts a

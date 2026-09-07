@@ -23,7 +23,7 @@ All notable changes to LumaFlow are documented in this file.
 - Accessibility semantics, scalable text and typed localization scopes.
 - Text wrapping, line limits and overflow handling.
 - Cards, decoration, borders, progress indicators, images and avatars.
-- Typed Lucide icon catalog.
+- Typed built-in icon catalog.
 - LumaFlow brand icon for widget layouts and framework logo for package
   documentation.
 - Mounted-tree diagnostics and the Editor Widget Inspector.

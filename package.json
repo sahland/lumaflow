@@ -17,6 +17,10 @@
     }
   ],
   "author": {
-    "name": "LumaFlow"
-  }
+    "name": "SaHland",
+    "url": "https://sahland.com",
+    "email": "sahland@mail.ru"
+  },
+  "documentationUrl": "https://sahland.github.io/lumaflow-web/docs/",
+  "changelogUrl": "https://github.com/sahland/lumaflow/blob/main/CHANGELOG.md"
 }
