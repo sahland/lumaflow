@@ -1,6 +1,7 @@
 name: Unity validation
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main, development]
@@ -8,6 +9,10 @@ on:
 permissions:
   contents: read
   checks: write
+
+concurrency:
+  group: unity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release-payloads:
@@ -41,13 +46,67 @@ jobs:
           python Tools/LumaFlow/Icons/generate_luma_icons.py --check-catalog Packages/com.sahland.lumaflow/Runtime/Controls/Button.cs
           python -m unittest discover -s Tools/LumaFlow/Icons -p "test_*.py"
 
-  package-tests:
-    name: Unity 6000.4.5f1 ${{ matrix.testMode }}
+  clean-package-tests:
+    name: Built-In ${{ matrix.unity }} ${{ matrix.channel }}
+    needs: release-payloads
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        testMode: [EditMode, PlayMode]
+        unity: ['6000.0.0f1', '6000.4.5f1']
+        channel: [git-upm, asset-store]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-payloads
+          path: Artifacts/release
+      - name: Prepare clean tarball consumer
+        env:
+          CHANNEL: ${{ matrix.channel }}
+          UNITY_VERSION: ${{ matrix.unity }}
+        run: |
+          python Tools/LumaFlow/Validation/prepare_tarball_project.py \
+            --archive "Artifacts/release/com.sahland.lumaflow-$(python -c 'import json; print(json.load(open("Artifacts/release/release-report.json"))["version"])')-${CHANNEL}.tgz" \
+            --output Artifacts/consumer --unity "$UNITY_VERSION" --channel "$CHANNEL"
+      - name: Run clean EditMode and PlayMode smoke tests
+        id: tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          projectPath: Artifacts/consumer
+          unityVersion: ${{ matrix.unity }}
+          testMode: all
+          artifactsPath: artifacts/clean-${{ matrix.unity }}-${{ matrix.channel }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Built-In ${{ matrix.unity }} ${{ matrix.channel }}
+      - name: Require actual passing test evidence
+        if: always()
+        run: python Tools/LumaFlow/Validation/check_smoke_results.py artifacts/clean-${{ matrix.unity }}-${{ matrix.channel }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clean-${{ matrix.unity }}-${{ matrix.channel }}
+          path: |
+            artifacts/clean-${{ matrix.unity }}-${{ matrix.channel }}
+            Artifacts/consumer/Artifacts/PlayerSmoke
+
+  package-tests:
+    name: Unity 6000.4.5f1 ${{ matrix.testMode }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        testMode: [editmode, playmode]
 
     steps:
       - uses: actions/checkout@v4

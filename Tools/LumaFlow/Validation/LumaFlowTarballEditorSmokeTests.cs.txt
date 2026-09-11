@@ -1,14 +1,47 @@
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine.UIElements;
+using UnityEngine.Rendering;
+using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
 
 namespace LumaFlow.Tarball.Tests
 {
     public sealed class LumaFlowTarballEditorSmokeTests
     {
         [Test]
+        public void PackedPackageBuildsInAStandalonePlayer()
+        {
+            const string scenePath = "Assets/TarballBuildSmoke.unity";
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            try
+            {
+                Assert.That(EditorSceneManager.SaveScene(scene, scenePath), Is.True);
+                var target = EditorUserBuildSettings.activeBuildTarget;
+                Assert.That(target == BuildTarget.StandaloneLinux64 || target == BuildTarget.StandaloneWindows64,
+                    Is.True, "Run this smoke build on a supported standalone target.");
+                var output = target == BuildTarget.StandaloneWindows64
+                    ? "Artifacts/PlayerSmoke/LumaFlow.exe" : "Artifacts/PlayerSmoke/LumaFlow.x86_64";
+                var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { scenePath },
+                    locationPathName = output,
+                    target = target,
+                    options = BuildOptions.Development
+                });
+                Assert.That(report.summary.result, Is.EqualTo(BuildResult.Succeeded));
+            }
+            finally
+            {
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                AssetDatabase.DeleteAsset(scenePath);
+            }
+        }
+
+        [Test]
         public void EditorAssemblyAndBrandAssetAreAvailable()
         {
+            Assert.That(GraphicsSettings.defaultRenderPipeline, Is.Null, "Smoke project must use Built-In.");
             Assert.That(typeof(LumaFlow.Editor.LumaFlowWidgetInspector).Assembly.GetName().Name, Is.EqualTo("LumaFlow.Editor"));
             Assert.That(AssetDatabase.LoadAssetAtPath<VectorImage>("Packages/com.sahland.lumaflow/Runtime/Icons/Resources/LumaFlowIcons/lumaflow.svg"), Is.Not.Null);
         }

@@ -29,7 +29,11 @@ pass locally and have a dedicated CI job. The obsolete Lucide license requiremen
 was removed from tarball validation. Channel-specific archives now have deterministic
 packaging, content/metadata/icon checks and negative regression tests. Unity import
 and runtime smoke tests for the resulting archives remain open in the CI stage.
-Current Unity CI targets only Unity 6000.4.5f1. A passing full Unity run has not
-been established for this audit.
+CI now defines clean archive smoke/build jobs on Unity 6000.0.0f1 and 6000.4.5f1
+in addition to the full current-version suite. This item stays open until green
+Unity evidence exists. Local 6000.4.5f1 and 6000.0.34f1 attempts fail in UPM with
+`path argument ... undefined`; an empty 6000.4.5f1 project without LumaFlow fails
+the same way. This establishes an environment failure, not successful package
+validation. Logs are retained under `Artifacts/consumer-*.log`.
 
 Do not mark runtime or release items complete based only on static inspection.
