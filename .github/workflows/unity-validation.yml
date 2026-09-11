@@ -10,6 +10,20 @@ permissions:
   checks: write
 
 jobs:
+  icon-validation:
+    name: Icon catalog and CC0 provenance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate icons and catalog
+        run: |
+          python Tools/LumaFlow/Icons/validate_icons.py
+          python Tools/LumaFlow/Icons/generate_luma_icons.py --check-catalog Packages/com.sahland.lumaflow/Runtime/Controls/Button.cs
+          python -m unittest discover -s Tools/LumaFlow/Icons -p "test_*.py"
+
   package-tests:
     name: Unity 6000.4.5f1 ${{ matrix.testMode }}
     runs-on: ubuntu-latest

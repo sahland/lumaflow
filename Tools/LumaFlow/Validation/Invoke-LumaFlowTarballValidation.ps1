@@ -44,7 +44,6 @@ $required = @(
     'package/Editor/LumaFlow.Editor.asmdef',
     'package/Samples~/Getting Started/LumaFlowCounterSample.cs',
     'package/Documentation~/index.md',
-    'package/ThirdPartyNotices/Lucide/LICENSE',
     'package/Runtime/Icons/Resources/LumaFlowIcons/lumaflow.svg',
     'package/Runtime/Icons/Resources/LumaFlowIcons/lumaflow.svg.meta',
     'package/Documentation~/Images/lumaflow.png'

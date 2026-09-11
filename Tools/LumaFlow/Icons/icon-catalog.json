@@ -1,6 +1,6 @@
 {
-  "upstream": "https://github.com/lucide-icons/lucide",
-  "revision": "a7c781bd43dbf295a4c2ab07d25d544dd7879bf9",
+  "schemaVersion": 1,
+  "purpose": "Stable public C# names and resource identifiers. Asset provenance is recorded in Tools/AssetStoreProvenance/cc0-icons.json.",
   "icons": [
     {
       "name": "Archive",
