@@ -1,0 +1,4 @@
+{
+  "displayName": "Getting Started",
+  "description": "Mount a reactive LumaFlow counter into a UIDocument with explicit lifecycle ownership."
+}

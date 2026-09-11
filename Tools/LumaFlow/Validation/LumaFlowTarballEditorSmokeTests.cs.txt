@@ -1,0 +1,16 @@
+using NUnit.Framework;
+using UnityEditor;
+using UnityEngine.UIElements;
+
+namespace LumaFlow.Tarball.Tests
+{
+    public sealed class LumaFlowTarballEditorSmokeTests
+    {
+        [Test]
+        public void EditorAssemblyAndBrandAssetAreAvailable()
+        {
+            Assert.That(typeof(LumaFlow.Editor.LumaFlowWidgetInspector).Assembly.GetName().Name, Is.EqualTo("LumaFlow.Editor"));
+            Assert.That(AssetDatabase.LoadAssetAtPath<VectorImage>("Packages/com.sahland.lumaflow/Runtime/Icons/Resources/LumaFlowIcons/lumaflow.svg"), Is.Not.Null);
+        }
+    }
+}

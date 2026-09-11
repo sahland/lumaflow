@@ -1,0 +1,28 @@
+{
+  "name": "LumaFlow.Performance.Tests",
+  "rootNamespace": "LumaFlow.Performance.Tests",
+  "references": [
+    "LumaFlow.Runtime",
+    "Unity.PerformanceTesting"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "LUMAFLOW_PERFORMANCE_TESTS"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.test-framework.performance",
+      "expression": "[3.0.0,4.0.0)",
+      "define": "LUMAFLOW_PERFORMANCE_TESTS"
+    }
+  ],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

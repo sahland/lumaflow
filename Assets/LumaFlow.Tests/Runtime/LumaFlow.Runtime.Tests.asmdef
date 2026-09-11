@@ -1,0 +1,19 @@
+{
+  "name": "LumaFlow.Runtime.Tests",
+  "rootNamespace": "LumaFlow.Runtime.Tests",
+  "references": [
+    "LumaFlow.Runtime"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

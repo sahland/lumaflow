@@ -1,0 +1,22 @@
+{
+  "name": "LumaFlow.Editor.Tests",
+  "rootNamespace": "LumaFlow.Editor.Tests",
+  "references": [
+    "LumaFlow.Runtime",
+    "LumaFlow.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

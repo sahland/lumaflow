@@ -1,0 +1,46 @@
+# Generated Python artifacts
+__pycache__/
+*.py[cod]
+
+# Unity-generated project data
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+.vs/
+
+# IDE and package archives
+*.csproj
+*.sln
+*.user
+*.tgz
+*.slnx
+*.csproj.Backup.tmp
+*.apk
+*.aab
+.DS_Store
+Thumbs.db
+
+# Local validation, captures and exported builds
+/[Aa]rtifacts/
+/Artifacts-*.log
+/ProfilerCaptures/
+/.utmp/
+/*_BurstDebugInformation_DoNotShip/
+/*_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# Website has its own repository
+/_web/
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.pfx
+*.p12
+*.pem

@@ -1,0 +1,26 @@
+{
+  "name": "com.sahland.lumaflow",
+  "version": "0.1.1",
+  "displayName": "LumaFlow",
+  "description": "A declarative, reactive C# UI framework built on Unity UI Toolkit.",
+  "unity": "6000.0",
+  "dependencies": {
+    "com.unity.modules.accessibility": "1.0.0",
+    "com.unity.modules.uielements": "1.0.0",
+    "com.unity.modules.vectorgraphics": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Getting Started",
+      "description": "A minimal stateful LumaFlow counter mounted into a UIDocument.",
+      "path": "Samples~/Getting Started"
+    }
+  ],
+  "author": {
+    "name": "SaHland",
+    "url": "https://sahland.com",
+    "email": "sahland@mail.ru"
+  },
+  "documentationUrl": "https://sahland.github.io/lumaflow-web/docs/",
+  "changelogUrl": "https://github.com/sahland/lumaflow/blob/main/CHANGELOG.md"
+}

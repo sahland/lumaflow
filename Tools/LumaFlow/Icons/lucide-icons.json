@@ -1,0 +1,386 @@
+{
+  "upstream": "https://github.com/lucide-icons/lucide",
+  "revision": "a7c781bd43dbf295a4c2ab07d25d544dd7879bf9",
+  "icons": [
+    {
+      "name": "Archive",
+      "source": "archive"
+    },
+    {
+      "name": "ArrowDown",
+      "source": "arrow-down"
+    },
+    {
+      "name": "ArrowLeft",
+      "source": "arrow-left"
+    },
+    {
+      "name": "ArrowRight",
+      "source": "arrow-right"
+    },
+    {
+      "name": "ArrowUp",
+      "source": "arrow-up"
+    },
+    {
+      "name": "Bell",
+      "source": "bell"
+    },
+    {
+      "name": "Braces",
+      "source": "braces"
+    },
+    {
+      "name": "Bug",
+      "source": "bug"
+    },
+    {
+      "name": "Calendar",
+      "source": "calendar"
+    },
+    {
+      "name": "Check",
+      "source": "check"
+    },
+    {
+      "name": "ChevronDown",
+      "source": "chevron-down"
+    },
+    {
+      "name": "ChevronLeft",
+      "source": "chevron-left"
+    },
+    {
+      "name": "ChevronRight",
+      "source": "chevron-right"
+    },
+    {
+      "name": "ChevronUp",
+      "source": "chevron-up"
+    },
+    {
+      "name": "ChevronsDown",
+      "source": "chevrons-down"
+    },
+    {
+      "name": "ChevronsLeft",
+      "source": "chevrons-left"
+    },
+    {
+      "name": "ChevronsRight",
+      "source": "chevrons-right"
+    },
+    {
+      "name": "ChevronsUp",
+      "source": "chevrons-up"
+    },
+    {
+      "name": "Clipboard",
+      "source": "clipboard"
+    },
+    {
+      "name": "Clock",
+      "source": "clock"
+    },
+    {
+      "name": "Close",
+      "source": "x"
+    },
+    {
+      "name": "Code",
+      "source": "code"
+    },
+    {
+      "name": "Columns",
+      "source": "columns-3"
+    },
+    {
+      "name": "Copy",
+      "source": "copy"
+    },
+    {
+      "name": "Database",
+      "source": "database"
+    },
+    {
+      "name": "Delete",
+      "source": "trash-2"
+    },
+    {
+      "name": "Download",
+      "source": "download"
+    },
+    {
+      "name": "Edit",
+      "source": "pencil"
+    },
+    {
+      "name": "Error",
+      "source": "circle-x"
+    },
+    {
+      "name": "ExternalLink",
+      "source": "external-link"
+    },
+    {
+      "name": "Eye",
+      "source": "eye"
+    },
+    {
+      "name": "EyeOff",
+      "source": "eye-off"
+    },
+    {
+      "name": "File",
+      "source": "file"
+    },
+    {
+      "name": "FileText",
+      "source": "file-text"
+    },
+    {
+      "name": "Filter",
+      "source": "funnel"
+    },
+    {
+      "name": "Folder",
+      "source": "folder"
+    },
+    {
+      "name": "FolderOpen",
+      "source": "folder-open"
+    },
+    {
+      "name": "GitBranch",
+      "source": "git-branch"
+    },
+    {
+      "name": "GitCommit",
+      "source": "git-commit-horizontal"
+    },
+    {
+      "name": "Globe",
+      "source": "globe"
+    },
+    {
+      "name": "Grid",
+      "source": "grid-2x2"
+    },
+    {
+      "name": "GripVertical",
+      "source": "grip-vertical"
+    },
+    {
+      "name": "Hammer",
+      "source": "hammer"
+    },
+    {
+      "name": "Headphones",
+      "source": "headphones"
+    },
+    {
+      "name": "Help",
+      "source": "circle-question-mark"
+    },
+    {
+      "name": "Home",
+      "source": "house"
+    },
+    {
+      "name": "Image",
+      "source": "image"
+    },
+    {
+      "name": "Info",
+      "source": "info"
+    },
+    {
+      "name": "Key",
+      "source": "key-round"
+    },
+    {
+      "name": "Library",
+      "source": "library"
+    },
+    {
+      "name": "Link",
+      "source": "link"
+    },
+    {
+      "name": "List",
+      "source": "list"
+    },
+    {
+      "name": "Loader",
+      "source": "loader-circle"
+    },
+    {
+      "name": "Lock",
+      "source": "lock"
+    },
+    {
+      "name": "Mail",
+      "source": "mail"
+    },
+    {
+      "name": "Maximize",
+      "source": "maximize"
+    },
+    {
+      "name": "Menu",
+      "source": "menu"
+    },
+    {
+      "name": "Mic",
+      "source": "mic"
+    },
+    {
+      "name": "Minimize",
+      "source": "minimize"
+    },
+    {
+      "name": "Minus",
+      "source": "minus"
+    },
+    {
+      "name": "MoreHorizontal",
+      "source": "ellipsis"
+    },
+    {
+      "name": "MoreVertical",
+      "source": "ellipsis-vertical"
+    },
+    {
+      "name": "Move",
+      "source": "move"
+    },
+    {
+      "name": "Music",
+      "source": "music"
+    },
+    {
+      "name": "Package",
+      "source": "package"
+    },
+    {
+      "name": "PanelLeft",
+      "source": "panel-left"
+    },
+    {
+      "name": "PanelRight",
+      "source": "panel-right"
+    },
+    {
+      "name": "Pause",
+      "source": "pause"
+    },
+    {
+      "name": "Play",
+      "source": "play"
+    },
+    {
+      "name": "Plus",
+      "source": "plus"
+    },
+    {
+      "name": "Redo",
+      "source": "redo-2"
+    },
+    {
+      "name": "Refresh",
+      "source": "refresh-cw"
+    },
+    {
+      "name": "Rows",
+      "source": "rows-3"
+    },
+    {
+      "name": "Save",
+      "source": "save"
+    },
+    {
+      "name": "Search",
+      "source": "search"
+    },
+    {
+      "name": "Server",
+      "source": "server"
+    },
+    {
+      "name": "Settings",
+      "source": "settings"
+    },
+    {
+      "name": "Share",
+      "source": "share-2"
+    },
+    {
+      "name": "Sidebar",
+      "source": "panel-left-open"
+    },
+    {
+      "name": "SkipBack",
+      "source": "skip-back"
+    },
+    {
+      "name": "SkipForward",
+      "source": "skip-forward"
+    },
+    {
+      "name": "Stop",
+      "source": "square"
+    },
+    {
+      "name": "Success",
+      "source": "circle-check"
+    },
+    {
+      "name": "Table",
+      "source": "table"
+    },
+    {
+      "name": "Terminal",
+      "source": "terminal"
+    },
+    {
+      "name": "Undo",
+      "source": "undo-2"
+    },
+    {
+      "name": "Unlock",
+      "source": "lock-open"
+    },
+    {
+      "name": "Upload",
+      "source": "upload"
+    },
+    {
+      "name": "User",
+      "source": "user"
+    },
+    {
+      "name": "Users",
+      "source": "users"
+    },
+    {
+      "name": "Volume",
+      "source": "volume-2"
+    },
+    {
+      "name": "VolumeLow",
+      "source": "volume-1"
+    },
+    {
+      "name": "VolumeOff",
+      "source": "volume-x"
+    },
+    {
+      "name": "Warning",
+      "source": "triangle-alert"
+    },
+    {
+      "name": "Wrench",
+      "source": "wrench"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "LumaFlow.Tarball.Editor.Tests",
+  "references": ["LumaFlow.Runtime", "LumaFlow.Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

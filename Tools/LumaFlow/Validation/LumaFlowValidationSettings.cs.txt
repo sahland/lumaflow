@@ -1,0 +1,14 @@
+using UnityEditor;
+using UnityEditor.Build;
+
+public static class LumaFlowValidationSettings {
+    public static void UseMono() {
+        PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
+        EditorApplication.Exit(0);
+    }
+
+    public static void UseIl2Cpp() {
+        PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.IL2CPP);
+        EditorApplication.Exit(0);
+    }
+}
