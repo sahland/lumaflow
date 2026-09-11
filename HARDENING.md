@@ -6,7 +6,7 @@ in every form.
 
 - [x] Establish a versioned development baseline including package, tests and CI.
 - [x] Replace stale Lucide tooling with checks against the CC0 provenance manifest.
-- [ ] Separate Git-UPM and Asset Store payloads and validate generated archives.
+- [x] Separate Git-UPM and Asset Store payloads and validate generated archives.
 - [ ] Expand CI to minimum/current Unity, clean package installation and builds.
 - [ ] Add C# edit-mode preview refreshed after assembly reload.
 - [ ] Add gradient backgrounds, clipping and other required styling primitives.
@@ -26,7 +26,9 @@ The two package source trees matched at audit time.
 Icon maintenance now uses a stable catalog mapping and the CC0 provenance
 manifest. The offline validator, generator check and negative regression tests
 pass locally and have a dedicated CI job. The obsolete Lucide license requirement
-was removed from tarball validation. Full archive/channel validation remains open.
+was removed from tarball validation. Channel-specific archives now have deterministic
+packaging, content/metadata/icon checks and negative regression tests. Unity import
+and runtime smoke tests for the resulting archives remain open in the CI stage.
 Current Unity CI targets only Unity 6000.4.5f1. A passing full Unity run has not
 been established for this audit.
 

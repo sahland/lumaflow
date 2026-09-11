@@ -20,5 +20,6 @@ validation scripts are in `Tools/LumaFlow/Validation`. Known release-tooling
 limitations and the remaining work are tracked in `HARDENING.md`.
 
 Unity caches, build output, profiler captures and the separately maintained
-website are excluded from version control. No remote is configured automatically
-for this development repository.
+website are excluded from version control. The development project is published
+on the `development` branch of `sahland/lumaflow`; `main` retains the existing
+package-root layout. See `Tools/LumaFlow/Validation/RELEASE.md` for payload builds.

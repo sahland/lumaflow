@@ -3,13 +3,30 @@ name: Unity validation
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, development]
 
 permissions:
   contents: read
   checks: write
 
 jobs:
+  release-payloads:
+    name: Git-UPM and Asset Store payloads
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test packaging rules
+        run: python -m unittest discover -s Tools/LumaFlow/Validation -p 'test_*.py'
+      - name: Build and inspect both payloads
+        run: python Tools/LumaFlow/Validation/package_release.py --output Artifacts/release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-payloads
+          path: Artifacts/release
+
   icon-validation:
     name: Icon catalog and CC0 provenance
     runs-on: ubuntu-latest
