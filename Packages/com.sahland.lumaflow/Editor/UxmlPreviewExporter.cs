@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,10 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using NativeButton = UnityEngine.UIElements.Button;
 using NativeImage = UnityEngine.UIElements.Image;
+using NativeScrollView = UnityEngine.UIElements.ScrollView;
+using NativeSlider = UnityEngine.UIElements.Slider;
+using NativeTextField = UnityEngine.UIElements.TextField;
+using NativeToggle = UnityEngine.UIElements.Toggle;
 
 namespace LumaFlow.Editor {
     /// <summary>Exports an initial visual snapshot using the existing runtime style mappers.</summary>
@@ -51,13 +56,17 @@ namespace LumaFlow.Editor {
 
         private static XElement Serialize(VisualElement element, StringBuilder styles, ref int index) {
             var type = element.GetType();
+            var isPopupField = IsPopupField(type);
             if (type != typeof(VisualElement) && type != typeof(Label)
-                && type != typeof(NativeButton) && type != typeof(NativeImage))
+                && type != typeof(NativeButton) && type != typeof(NativeImage)
+                && type != typeof(NativeSlider) && type != typeof(NativeToggle)
+                && type != typeof(NativeTextField) && type != typeof(NativeScrollView)
+                && !isPopupField)
                 throw new NotSupportedException($"Preview export does not yet support native element {type.FullName}.");
             if (element.styleSheets.count != 0)
                 throw new NotSupportedException("External stylesheets require an explicit preview adapter.");
             var className = "lf-preview-" + index++;
-            var xml = new XElement(Ui + type.Name,
+            var xml = new XElement(Ui + (isPopupField ? nameof(DropdownField) : type.Name),
                 new XAttribute("class", string.Join(" ", element.GetClasses().Append(className))),
                 new XAttribute("name", element.name ?? ""),
                 new XAttribute("picking-mode", element.pickingMode.ToString()),
@@ -75,7 +84,23 @@ namespace LumaFlow.Editor {
                 xml.Add(new XAttribute("scale-mode", image.scaleMode.ToString()));
                 xml.Add(new XAttribute("tint-color", "#" + ColorUtility.ToHtmlStringRGBA(image.tintColor)));
             }
-            styles.Append('.').Append(className).Append(" {\n");
+            AddControlAttributes(xml, element, isPopupField);
+            AppendStyleRule(element, "." + className, styles);
+            if (IsTemplateControl(element, isPopupField)) {
+                var content = element is NativeScrollView scrollView ? scrollView.contentContainer : null;
+                AppendDescendantStyles(element, "." + className, styles, content);
+                if (content != null) {
+                    foreach (var child in content.Children()) xml.Add(Serialize(child, styles, ref index));
+                }
+                return xml;
+            }
+            // These supported elements own ordinary children, not template-generated control parts.
+            foreach (var child in element.Children()) xml.Add(Serialize(child, styles, ref index));
+            return xml;
+        }
+
+        private static void AppendStyleRule(VisualElement element, string selector, StringBuilder styles) {
+            styles.Append(selector).Append(" {\n");
             foreach (var property in Styles) {
                 var wrapper = property.GetValue(element.style);
                 if (wrapper == null) continue;
@@ -89,14 +114,89 @@ namespace LumaFlow.Editor {
                 styles.Append("  ").Append(CssName(property.Name)).Append(": ").Append(value).Append(";\n");
             }
             styles.Append("}\n");
-            // These supported elements own ordinary children, not template-generated control parts.
-            foreach (var child in element.Children()) xml.Add(Serialize(child, styles, ref index));
-            return xml;
         }
+
+        private static void AppendDescendantStyles(
+            VisualElement parent,
+            string parentSelector,
+            StringBuilder styles,
+            VisualElement? stopAfter) {
+            foreach (var child in parent.Children()) {
+                var cssClass = child.GetClasses()
+                    .Where(name => name.StartsWith("unity-", StringComparison.Ordinal))
+                    .OrderByDescending(name => name.Length)
+                    .FirstOrDefault();
+                if (cssClass == null) continue;
+                var selector = parentSelector + " > ." + cssClass;
+                AppendStyleRule(child, selector, styles);
+                if (child != stopAfter) AppendDescendantStyles(child, selector, styles, stopAfter);
+            }
+        }
+
+        private static bool IsTemplateControl(VisualElement element, bool isPopupField) =>
+            element is NativeSlider or NativeToggle or NativeTextField or NativeScrollView || isPopupField;
+
+        private static bool IsPopupField(Type type) => type.IsGenericType
+            && type.GetGenericTypeDefinition() == typeof(PopupField<>);
+
+        private static void AddControlAttributes(XElement xml, VisualElement element, bool isPopupField) {
+            switch (element) {
+                case NativeSlider slider:
+                    xml.Add(new XAttribute("label", slider.label ?? ""));
+                    xml.Add(new XAttribute("low-value", Number(slider.lowValue)));
+                    xml.Add(new XAttribute("high-value", Number(slider.highValue)));
+                    xml.Add(new XAttribute("value", Number(slider.value)));
+                    xml.Add(new XAttribute("direction", slider.direction));
+                    xml.Add(new XAttribute("fill", slider.fill ? "true" : "false"));
+                    break;
+                case NativeToggle toggle:
+                    xml.Add(new XAttribute("label", toggle.label ?? ""));
+                    xml.Add(new XAttribute("value", toggle.value ? "true" : "false"));
+                    break;
+                case NativeTextField textField:
+                    xml.Add(new XAttribute("label", textField.label ?? ""));
+                    xml.Add(new XAttribute("value", textField.value ?? ""));
+                    xml.Add(new XAttribute("placeholder-text", textField.textEdition.placeholder ?? ""));
+                    xml.Add(new XAttribute("is-password-field", textField.isPasswordField ? "true" : "false"));
+                    xml.Add(new XAttribute("multiline", textField.multiline ? "true" : "false"));
+                    break;
+                case NativeScrollView scrollView:
+                    xml.Add(new XAttribute("mode", scrollView.mode));
+                    xml.Add(new XAttribute("horizontal-scroller-visibility", scrollView.horizontalScrollerVisibility));
+                    xml.Add(new XAttribute("vertical-scroller-visibility", scrollView.verticalScrollerVisibility));
+                    break;
+                default:
+                    if (isPopupField) AddPopupFieldAttributes(xml, element);
+                    break;
+            }
+        }
+
+        private static void AddPopupFieldAttributes(XElement xml, VisualElement element) {
+            var type = element.GetType();
+            var choices = (IEnumerable?)type.GetProperty("choices")?.GetValue(element)
+                ?? throw new NotSupportedException($"Preview cannot read choices from {type.FullName}.");
+            var listFormatter = type.GetProperty("formatListItemCallback")?.GetValue(element) as Delegate;
+            var selectedFormatter = type.GetProperty("formatSelectedValueCallback")?.GetValue(element) as Delegate;
+            var labels = choices.Cast<object?>().Select(choice => FormatChoice(listFormatter, choice)).ToArray();
+            if (labels.Any(label => label.Contains(",", StringComparison.Ordinal)))
+                throw new NotSupportedException("Dropdown preview labels cannot contain commas.");
+            var value = type.GetProperty("value")?.GetValue(element);
+            var label = type.GetProperty("label")?.GetValue(element) as string;
+            xml.Add(new XAttribute("label", label ?? ""));
+            xml.Add(new XAttribute("choices", string.Join(",", labels)));
+            xml.Add(new XAttribute("value", FormatChoice(selectedFormatter, value)));
+        }
+
+        private static string FormatChoice(Delegate? formatter, object? value) => formatter != null
+            ? formatter.DynamicInvoke(value)?.ToString() ?? ""
+            : value?.ToString() ?? "";
+
+        private static string Number(float value) => value.ToString("R", CultureInfo.InvariantCulture);
 
         private static string FormatValue(object? value, string property) {
             switch (value) {
-                case float number when !float.IsNaN(number) && !float.IsInfinity(number): return number.ToString("R", CultureInfo.InvariantCulture);
+                case float number when !float.IsNaN(number) && !float.IsInfinity(number):
+                    return number.ToString("R", CultureInfo.InvariantCulture) + (IsFloatLength(property) ? "px" : "");
                 case int integer: return integer.ToString(CultureInfo.InvariantCulture);
                 case Length length: return length.value.ToString("R", CultureInfo.InvariantCulture) + (length.unit == LengthUnit.Percent ? "%" : "px");
                 case Color color: return $"rgba({Mathf.RoundToInt(color.r * 255)}, {Mathf.RoundToInt(color.g * 255)}, {Mathf.RoundToInt(color.b * 255)}, {color.a.ToString("R", CultureInfo.InvariantCulture)})";
@@ -110,6 +210,10 @@ namespace LumaFlow.Editor {
             var name = Regex.Replace(value, "([a-z0-9])([A-Z])", "$1-$2").ToLowerInvariant();
             return name.StartsWith("unity-", StringComparison.Ordinal) ? "-" + name : name;
         }
+
+        private static bool IsFloatLength(string property) => property.StartsWith("border", StringComparison.Ordinal)
+            && property.EndsWith("Width", StringComparison.Ordinal)
+            || property == "unityTextOutlineWidth";
 
         private static string AssetUri(UnityEngine.Object asset) {
             if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long fileId))

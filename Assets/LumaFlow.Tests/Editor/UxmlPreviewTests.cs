@@ -2,6 +2,7 @@
 
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using NUnit.Framework;
@@ -106,6 +107,55 @@ namespace LumaFlow.Editor.Tests {
             var xml = XDocument.Parse(export.Uxml);
             Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "Label").Attribute("text")!.Value,
                 Is.EqualTo("390 x 390"));
+        }
+
+        [Test]
+        public void ExportSupportsCommonControlsWithoutInvokingCallbacks() {
+            var callbacks = 0;
+            var export = UxmlPreviewExporter.Export(new Column(new Widget[] {
+                new Slider(new State<float>(0.25f), 0f, 1f, "Scale", onChanged: _ => callbacks++),
+                new Checkbox(new State<bool>(true), "Enabled", onChanged: _ => callbacks++),
+                new Switch(new State<bool>(false), "Visible", onChanged: _ => callbacks++),
+                new TextField(new State<string>("Luma"), "Name", "Project name", onChanged: _ => callbacks++),
+                new Dropdown<string>(new State<string>("Two"), new[] { "One", "Two" }, value => value,
+                    "Mode", onChanged: _ => callbacks++),
+                new SizedBox(new ScrollView(new Text("Scrollable")), height: 80f)
+            }), "Preview.uss");
+            var xml = XDocument.Parse(export.Uxml);
+
+            Assert.That(callbacks, Is.Zero);
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "Slider").Attribute("value")!.Value,
+                Is.EqualTo("0.25"));
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "Toggle").Attribute("value")!.Value,
+                Is.EqualTo("true"));
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "TextField")
+                .Attribute("placeholder-text")!.Value, Is.EqualTo("Project name"));
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "DropdownField")
+                .Attribute("choices")!.Value, Is.EqualTo("One,Two"));
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "ScrollView")
+                .Descendants().Single(element => element.Name.LocalName == "Label").Attribute("text")!.Value,
+                Is.EqualTo("Scrollable"));
+            Assert.That(export.Uss, Does.Contain("border-top-width: 1px"));
+
+            var folder = "Assets/UxmlControlPreview-" + Guid.NewGuid().ToString("N");
+            AssetDatabase.CreateFolder("Assets", Path.GetFileName(folder));
+            try {
+                File.WriteAllText(folder + "/Preview.uss", export.Uss);
+                File.WriteAllText(folder + "/Preview.uxml", export.Uxml);
+                AssetDatabase.ImportAsset(folder + "/Preview.uss", ImportAssetOptions.ForceSynchronousImport);
+                AssetDatabase.ImportAsset(folder + "/Preview.uxml", ImportAssetOptions.ForceSynchronousImport);
+                var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(folder + "/Preview.uxml");
+                Assert.That(tree, Is.Not.Null);
+                var clone = new VisualElement();
+                tree!.CloneTree(clone);
+                Assert.That(clone.Q<UnityEngine.UIElements.Slider>().value, Is.EqualTo(0.25f));
+                Assert.That(clone.Q<UnityEngine.UIElements.Toggle>().value, Is.True);
+                Assert.That(clone.Q<UnityEngine.UIElements.TextField>().textEdition.placeholder, Is.EqualTo("Project name"));
+                Assert.That(clone.Q<DropdownField>().choices, Is.EqualTo(new[] { "One", "Two" }));
+                Assert.That(clone.Q<UnityEngine.UIElements.ScrollView>().Q<Label>().text, Is.EqualTo("Scrollable"));
+            } finally {
+                AssetDatabase.DeleteAsset(folder);
+            }
         }
 
         [LumaPreview("Tests / Code preview")]

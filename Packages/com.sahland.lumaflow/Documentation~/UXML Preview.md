@@ -84,13 +84,19 @@ Factory and widget initialization code executes during generation.
 
 ## Current boundary
 
-The prototype supports native VisualElement, Label, Button and saved Image
-assets, covering basic Container, Row, Column, SizedBox, padding, positioning
-and initial `LayoutBuilder` branches. It serializes the initial state and supported inline styles. It does
-not serialize callbacks, reactive subscriptions, hover transitions or game logic.
-Unsupported native element/style types, Native wrappers and animation nodes
-fail explicitly. Controls with generated internal hierarchies,
-such as sliders, switches and scrolling, need dedicated adapters in a later pass.
+The prototype supports native VisualElement, Label, Button, saved Image assets,
+Slider, Checkbox/Toggle, Switch, TextField, Dropdown and ScrollView. This covers
+basic Container, Row, Column, SizedBox, padding, positioning and initial
+`LayoutBuilder` branches. Generated controls preserve their initial values,
+labels, ranges, choices, placeholder configuration, scroll direction and
+LumaFlow styling. Their internal UI Toolkit parts are styled through scoped USS
+selectors instead of being duplicated into the UXML hierarchy.
+
+The snapshot does not serialize callbacks, reactive subscriptions, hover
+transitions or game logic. Editing a generated control does not write back to
+LumaFlow state. Unsupported native element/style types, arbitrary Native
+wrappers and animation nodes fail explicitly. Dropdown display labels cannot
+contain commas because UI Toolkit's UXML list attribute uses commas as separators.
 Inherited panel styling depends on the receiving panel's theme.
 
 The generated USS preserves relative lengths. `LayoutBuilder` receives the
