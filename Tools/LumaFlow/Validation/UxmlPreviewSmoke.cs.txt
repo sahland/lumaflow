@@ -16,7 +16,7 @@ public static class UxmlPreviewSmoke {
 
     public static void Run() {
         try {
-            var regressionType = Type.GetType("LumaFlow.Editor.Tests.UxmlPreviewTests, LumaFlow.Preview.Tests", true);
+            var regressionType = Type.GetType("LumaFlow.Editor.Tests.UxmlPreviewTests, LumaFlow.Editor.Tests", true);
             var regression = Activator.CreateInstance(regressionType);
             var count = 0;
             foreach (var method in regressionType.GetMethods()) {
@@ -26,7 +26,7 @@ public static class UxmlPreviewSmoke {
                     count++;
                 }
             }
-            if (count < 6) throw new Exception("Preview regression tests were not discovered");
+            if (count < 7) throw new Exception("Preview regression tests were not discovered");
             Debug.Log($"UXML_PREVIEW_REGRESSIONS_PASSED: {count}");
             var definition = ScriptableObject.CreateInstance<UxmlPreviewDemo>();
             var export = UxmlPreviewExporter.Export(definition.CreateWidget(), "Preview.uss");

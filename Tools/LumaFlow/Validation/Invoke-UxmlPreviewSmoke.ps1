@@ -28,10 +28,11 @@ $references += "-r:$plugins/LumaFlow.Runtime.dll"
 $previewSources = @(
     Get-ChildItem "$package/Editor/UxmlPreview*.cs" | ForEach-Object FullName
     "$package/Editor/LumaPreviewAttribute.cs"
+    "$package/Editor/AssemblyInfo.cs"
 )
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Preview.Compile.dll" $references $previewSources
 if ($LASTEXITCODE) { throw 'Preview compilation failed.' }
-& dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Preview.Tests.dll" $references `
+& dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Editor.Tests.dll" $references `
     "-r:$editor/LumaFlow.Preview.Compile.dll" "-r:$($nunit.FullName)" "$root/Assets/LumaFlow.Tests/Editor/UxmlPreviewTests.cs"
 if ($LASTEXITCODE) { throw 'Preview test compilation failed.' }
 Copy-Item $nunit.FullName $editor

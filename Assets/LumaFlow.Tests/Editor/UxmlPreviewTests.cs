@@ -96,6 +96,18 @@ namespace LumaFlow.Editor.Tests {
             Assert.Throws<ArgumentException>(() => UxmlPreviewExporter.Export(new Text("Test"), "../other.uss"));
         }
 
+        [Test]
+        public void ExportResolvesLayoutBuilderFromPreviewViewport() {
+            var export = UxmlPreviewExporter.Export(
+                new LayoutBuilder((context, constraints) => new Text(
+                    $"{context.MediaQuery.Width:0} x {constraints.MaxWidth:0}")),
+                "Preview.uss",
+                new Vector2(390f, 844f));
+            var xml = XDocument.Parse(export.Uxml);
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "Label").Attribute("text")!.Value,
+                Is.EqualTo("390 x 390"));
+        }
+
         [LumaPreview("Tests / Code preview")]
         private static Widget CreateCodePreview() => new Text("Code preview");
     }

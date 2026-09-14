@@ -18,21 +18,22 @@ namespace LumaFlow.Editor {
                 throw new InvalidOperationException("Save the preview definition as an asset before generating UXML.");
             }
 
-            return Generate(definition.CreateWidget(), guid, out uxmlPath);
+            return Generate(definition.CreateWidget(), guid, UxmlPreviewViewport.GetGameViewSize(), out uxmlPath);
         }
 
         internal static VisualTreeAsset Generate(LumaPreviewFactory factory, out string uxmlPath) {
             if (factory == null) throw new ArgumentNullException(nameof(factory));
-            return Generate(factory.CreateWidget(), "code-" + UnityEngine.Hash128.Compute(factory.Id), out uxmlPath);
+            return Generate(factory.CreateWidget(), "code-" + UnityEngine.Hash128.Compute(factory.Id),
+                UxmlPreviewViewport.GetGameViewSize(), out uxmlPath);
         }
 
-        private static VisualTreeAsset Generate(Widget widget, string folderName, out string uxmlPath) {
+        private static VisualTreeAsset Generate(Widget widget, string folderName, UnityEngine.Vector2 viewportSize, out string uxmlPath) {
             EnsureFolder("Assets", "LumaFlowGenerated");
             var folder = GeneratedRoot + "/" + folderName;
             EnsureFolder(GeneratedRoot, folderName);
             var ussPath = folder + "/Preview.uss";
             uxmlPath = folder + "/Preview.uxml";
-            var export = UxmlPreviewExporter.Export(widget, "Preview.uss");
+            var export = UxmlPreviewExporter.Export(widget, "Preview.uss", viewportSize);
             var ussChanged = WriteChanged(ussPath, export.Uss);
             var uxmlChanged = WriteChanged(uxmlPath, export.Uxml);
             if (ussChanged) AssetDatabase.ImportAsset(ussPath, ImportAssetOptions.ForceSynchronousImport);

@@ -35,9 +35,11 @@ opens the selected factory's source.
 Generated files live under `Assets/LumaFlowGenerated/<factory-asset-guid>/`.
 The window opens in single-preview mode. Enable **Compare runtime** to display
 both backends. Phone/tablet/desktop presets and the width/height fields set the
-preview viewport; the 25–100% scale changes only its display size. Scrollbars
-remain available for larger canvases. These settings affect the editor canvas,
-not the actual Game View resolution or the generated layout rules.
+preview canvas; the 25–100% scale changes only its display size. Scrollbars
+remain available for larger canvases. Responsive C# branches are generated
+against the main Game View resolution (1280×720 in headless validation), so the
+UXML bound to a `UIDocument` matches the edit-mode Game View rather than the
+size of the optional authoring window.
 **Open UXML**, **Open USS** and **Show generated files** provide direct access to
 the output. **New demo** creates and selects a factory without leaving the window.
 Unchanged files are not rewritten. Edit the factory rather than these files.
@@ -83,16 +85,18 @@ Factory and widget initialization code executes during generation.
 ## Current boundary
 
 The prototype supports native VisualElement, Label, Button and saved Image
-assets, covering basic Container, Row, Column, SizedBox, padding and positioning
-layouts. It serializes the initial state and supported inline styles. It does
+assets, covering basic Container, Row, Column, SizedBox, padding, positioning
+and initial `LayoutBuilder` branches. It serializes the initial state and supported inline styles. It does
 not serialize callbacks, reactive subscriptions, hover transitions or game logic.
-Unsupported native element/style types, Native wrappers, LayoutBuilder and
-animation nodes fail explicitly. Controls with generated internal hierarchies,
+Unsupported native element/style types, Native wrappers and animation nodes
+fail explicitly. Controls with generated internal hierarchies,
 such as sliders, switches and scrolling, need dedicated adapters in a later pass.
 Inherited panel styling depends on the receiving panel's theme.
 
-The generated USS preserves relative lengths. LayoutBuilder/responsive logic
-requiring an attached panel is not evaluated by this detached snapshot prototype.
+The generated USS preserves relative lengths. `LayoutBuilder` receives the
+current Game View dimensions during generation. Its selected branch is a static
+snapshot and regenerates after compilation; it cannot switch branches inside
+the generated UXML without another generation pass.
 Arbitrary C# cannot be serialized to UXML. Runtime-loaded textures without saved
 asset references cannot be exported either.
 
