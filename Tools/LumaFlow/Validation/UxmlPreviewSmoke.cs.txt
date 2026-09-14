@@ -1,0 +1,100 @@
+using System;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UIElements;
+using LumaFlow;
+using LumaFlow.Editor;
+
+// Standalone Editor harness: no Test Framework or package manager is required.
+public static class UxmlPreviewSmoke {
+    private static EditorWindow _window;
+    private static MountHandle _mount;
+    private static VisualElement _left;
+    private static VisualElement _right;
+    private static int _frames;
+
+    public static void Run() {
+        try {
+            var regressionType = Type.GetType("LumaFlow.Editor.Tests.UxmlPreviewTests, LumaFlow.Preview.Tests", true);
+            var regression = Activator.CreateInstance(regressionType);
+            var count = 0;
+            foreach (var method in regressionType.GetMethods()) {
+                foreach (var attribute in method.GetCustomAttributes(false)) {
+                    if (attribute.GetType().FullName != "NUnit.Framework.TestAttribute") continue;
+                    method.Invoke(regression, null);
+                    count++;
+                }
+            }
+            if (count < 4) throw new Exception("Preview regression tests were not discovered");
+            Debug.Log($"UXML_PREVIEW_REGRESSIONS_PASSED: {count}");
+            var definition = ScriptableObject.CreateInstance<UxmlPreviewDemo>();
+            var export = UxmlPreviewExporter.Export(definition.CreateWidget(), "Preview.uss");
+            Directory.CreateDirectory("Assets/Generated");
+            File.WriteAllText("Assets/Generated/Preview.uss", export.Uss);
+            File.WriteAllText("Assets/Generated/Preview.uxml", export.Uxml);
+            AssetDatabase.ImportAsset("Assets/Generated/Preview.uss", ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset("Assets/Generated/Preview.uxml", ImportAssetOptions.ForceSynchronousImport);
+            var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/Generated/Preview.uxml");
+            if (tree == null) throw new Exception("UXML did not import");
+            _window = ScriptableObject.CreateInstance<PreviewSmokeWindow>();
+            _window.position = new Rect(0, 0, 900, 400);
+            _window.Show();
+            _window.rootVisualElement.style.flexDirection = FlexDirection.Row;
+            _window.rootVisualElement.style.width = 900;
+            _window.rootVisualElement.style.height = 400;
+            _left = new VisualElement();
+            _right = new VisualElement();
+            foreach (var host in new[] { _left, _right }) {
+                host.style.width = 440;
+                host.style.height = 360;
+                _window.rootVisualElement.Add(host);
+            }
+            _mount = LumaFlow.LumaFlow.Mount(definition.CreateWidget(), _left);
+            tree.CloneTree(_right);
+            UnityEngine.Object.DestroyImmediate(definition);
+            EditorApplication.update += Verify;
+        } catch (Exception exception) { Fail(exception); }
+    }
+
+    private static void Verify() {
+        if (++_frames < 30) return;
+        EditorApplication.update -= Verify;
+        try {
+            // Batch mode does not repaint Editor windows; explicitly run UI Toolkit's layout pass.
+            var panel = _window.rootVisualElement.panel;
+            panel.GetType().GetMethod("ValidateLayout", System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)?.Invoke(panel, null);
+            Compare(_left[0], _right[0]);
+            Debug.Log("UXML_PREVIEW_SMOKE_PASSED: import and recursive layout/style parity");
+            _mount.Dispose();
+            _window.Close();
+            EditorApplication.Exit(0);
+        } catch (Exception exception) { Fail(exception); }
+    }
+
+    private static void Compare(VisualElement left, VisualElement right) {
+        if (left.GetType() != right.GetType() || left.childCount != right.childCount)
+            throw new Exception("Hierarchy differs at " + left.GetType().Name);
+        if (float.IsNaN(left.layout.width) || left.layout.width <= 0)
+            throw new Exception("Layout was not resolved: " + left.GetType().Name);
+        if (Vector2.Distance(left.layout.size, right.layout.size) > 0.2f
+            || Vector2.Distance(left.layout.position, right.layout.position) > 0.2f)
+            throw new Exception($"Layout differs: {left.GetType().Name}: {left.layout} vs {right.layout}");
+        if (Vector4.Distance(left.resolvedStyle.backgroundColor, right.resolvedStyle.backgroundColor) > 0.005f
+            || Vector4.Distance(left.resolvedStyle.color, right.resolvedStyle.color) > 0.005f)
+            throw new Exception("Color differs at " + left.GetType().Name);
+        if (left is TextElement text && text.text != ((TextElement)right).text)
+            throw new Exception("Text differs");
+        for (var i = 0; i < left.childCount; i++) Compare(left[i], right[i]);
+    }
+
+    private static void Fail(Exception exception) {
+        Debug.LogException(exception);
+        _mount?.Dispose();
+        if (_window != null) _window.Close();
+        EditorApplication.Exit(1);
+    }
+}
+
+public sealed class PreviewSmokeWindow : EditorWindow { }

@@ -42,4 +42,14 @@ then GameCI reports `Licensing method: <none>`. An activation preflight now bloc
 the expensive Unity matrix early with setup instructions. Package and icon jobs
 passed; the Unity validation milestone remains blocked on activation.
 
+## UXML prototype
+
+An editor-only factory, snapshot exporter and comparison window now generate
+UXML/USS from the existing mount/style mappers. Initial scope covers ordinary
+containers, labels, buttons and asset-backed images. A Unity 6000.4.5f1 isolated
+`-noUpm` smoke run imported the assets and passed recursive layout/color/text
+parity. This bypasses the local UPM issue; it is not package installation evidence.
+The broader preview milestone remains open for control adapters and verification
+of Game View/reload behavior in the interactive Editor.
+
 Do not mark runtime or release items complete based only on static inspection.
