@@ -36,4 +36,10 @@ Unity evidence exists. Local 6000.4.5f1 and 6000.0.34f1 attempts fail in UPM wit
 the same way. This establishes an environment failure, not successful package
 validation. Logs are retained under `Artifacts/consumer-*.log`.
 
+Hosted CI run 34585332523 was diagnosed on 2026-09-14: Unity activation inputs
+are absent (repository Actions secrets list is empty). Image download succeeds,
+then GameCI reports `Licensing method: <none>`. An activation preflight now blocks
+the expensive Unity matrix early with setup instructions. Package and icon jobs
+passed; the Unity validation milestone remains blocked on activation.
+
 Do not mark runtime or release items complete based only on static inspection.

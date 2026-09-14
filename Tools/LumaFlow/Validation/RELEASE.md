@@ -52,3 +52,20 @@ Run Unity Test Runner for both modes in that project. Windows validation require
 the Windows standalone target; CI uses Linux standalone. GameCI also needs Unity
 activation credentials configured as repository secrets, as documented at
 https://game.ci/docs/github/test-runner/.
+
+## Activating hosted Unity jobs
+
+In repository Settings > Secrets and variables > Actions, configure the Unity
+activation method supported by your account and the GameCI image. The image used
+by this workflow requests `UNITY_EMAIL` and `UNITY_PASSWORD` for a Personal seat,
+adds `UNITY_SERIAL` for Pro, or accepts a supported `UNITY_LICENSE` file content.
+Use GitHub's secret fields; never commit credentials or paste them into logs.
+
+The activation preflight checks presence only. Invalid or expired credentials
+still fail in Unity. Without activation inputs the preflight fails, Unity jobs
+are blocked, and Python/package checks continue independently. This does not
+count as a passing Unity run.
+
+After configuring secrets, rerun the workflow from GitHub Actions. Baseline run
+34585332523 failed with `Licensing method: <none>` before compilation; Docker
+images downloaded successfully. That run does not establish a framework failure.
