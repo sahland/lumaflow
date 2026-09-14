@@ -10,7 +10,9 @@ This is an experimental snapshot exporter, not a replacement runtime backend.
 
 1. Create an asset using **Assets > Create > LumaFlow > UXML Preview Demo**.
 2. Open **Tools > LumaFlow > UXML Preview (Experimental)** and select that asset.
-3. The window shows the runtime mount and generated UXML beside each other.
+3. Edit preview data directly in the window's sidebar. **Auto refresh** regenerates
+   after data edits; **Generate** remains available for manual refresh.
+   **Edit factory C#** opens the selected factory's source.
 4. Edit the asset's preview data, or edit its C# factory and let Unity recompile.
    With the window open, preview generation runs again after assembly reload.
 5. Click **Toggle Game View preview** to display the generated tree through a
@@ -18,9 +20,16 @@ This is an experimental snapshot exporter, not a replacement runtime backend.
    the generated PanelSettings asset can be configured for your project's theme.
 
 Generated files live under `Assets/LumaFlowGenerated/<factory-asset-guid>/`.
+The window opens in single-preview mode. Enable **Compare runtime** to display
+both backends. Phone/tablet/desktop presets and the width/height fields set the
+preview viewport; the 25–100% scale changes only its display size. Scrollbars
+remain available for larger canvases. These settings affect the editor canvas,
+not the actual Game View resolution or the generated layout rules.
+**Open UXML**, **Open USS** and **Show generated files** provide direct access to
+the output. **New demo** creates and selects a factory without leaving the window.
 Unchanged files are not rewritten. Edit the factory rather than these files.
 You can also assign `Preview.uxml` to your own UIDocument. The temporary preview
-object is removed when the window closes or Play Mode starts; it is not saved
+   object is removed when the window closes or Play Mode starts; it is not saved
 into your scene. PanelSettings and generated assets remain available.
 
 ## Your own factory
