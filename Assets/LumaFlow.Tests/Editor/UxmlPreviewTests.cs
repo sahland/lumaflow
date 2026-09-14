@@ -8,9 +8,34 @@ using NUnit.Framework;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEditor;
 
 namespace LumaFlow.Editor.Tests {
     public sealed class UxmlPreviewTests {
+        [Test]
+        public void GeneratedUxmlKeepsAStableAssetIdentity() {
+            var rootExisted = AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot);
+            var definitionPath = "Assets/UxmlPreviewDefinition-" + Guid.NewGuid().ToString("N") + ".asset";
+            var definition = ScriptableObject.CreateInstance<UxmlPreviewDemo>();
+            AssetDatabase.CreateAsset(definition, definitionPath);
+            string generatedFolder = "";
+            try {
+                Assert.That(definition.AutoGenerate, Is.True);
+                var first = UxmlPreviewGenerator.Generate(definition, out var firstPath);
+                var firstGuid = AssetDatabase.AssetPathToGUID(firstPath);
+                generatedFolder = UxmlPreviewGenerator.GetGeneratedFolder(definition);
+                var second = UxmlPreviewGenerator.Generate(definition, out var secondPath);
+                Assert.That(secondPath, Is.EqualTo(firstPath));
+                Assert.That(AssetDatabase.AssetPathToGUID(secondPath), Is.EqualTo(firstGuid));
+                Assert.That(second, Is.SameAs(first));
+            } finally {
+                if (!string.IsNullOrEmpty(generatedFolder)) AssetDatabase.DeleteAsset(generatedFolder);
+                AssetDatabase.DeleteAsset(definitionPath);
+                if (!rootExisted && AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot))
+                    AssetDatabase.DeleteAsset(UxmlPreviewGenerator.GeneratedRoot);
+            }
+        }
+
         [Test]
         public void WindowControlsResizeCanvasWithoutChangingItsLayoutScale() {
             var window = ScriptableObject.CreateInstance<UxmlPreviewWindow>();

@@ -13,7 +13,6 @@ using NativeScrollView = UnityEngine.UIElements.ScrollView;
 namespace LumaFlow.Editor {
     public sealed class UxmlPreviewWindow : EditorWindow {
         [SerializeField] private UxmlPreviewDefinition? _definition;
-        [SerializeField] private bool _showGameView;
         [SerializeField] private bool _compare;
         [SerializeField] private bool _autoRefresh = true;
         [SerializeField] private int _viewportWidth = 640;
@@ -24,7 +23,6 @@ namespace LumaFlow.Editor {
         private VisualElement? _runtimePane;
         private string? _outputFolder;
         private MountHandle? _mount;
-        private GameObject? _gameHost;
         private VisualElement? _runtime;
         private VisualElement? _generated;
         private Label? _status;
@@ -55,9 +53,7 @@ namespace LumaFlow.Editor {
             toolbar.Add(field);
             toolbar.Add(new ToolbarButton(() => CreateDemo(field)) { text = "New demo" });
             toolbar.Add(new ToolbarButton(QueueRebuild) { text = "Generate" });
-            var gameView = new ToolbarToggle { text = "Game View", value = _showGameView };
-            gameView.RegisterValueChangedCallback(change => { _showGameView = change.newValue; QueueRebuild(); });
-            toolbar.Add(gameView);
+            toolbar.Add(new ToolbarButton(BindSelectedDocument) { text = "Bind selected UIDocument" });
             rootVisualElement.Add(toolbar);
             var options = new Toolbar();
             var auto = new ToolbarToggle { text = "Auto refresh", value = _autoRefresh };
@@ -212,22 +208,14 @@ namespace LumaFlow.Editor {
 
         private void OnEnable() {
             Undo.undoRedoPerformed += AutoRebuild;
-            EditorApplication.playModeStateChanged += OnPlayModeChanged;
         }
 
         private void OnDisable() {
             Undo.undoRedoPerformed -= AutoRebuild;
-            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
             EditorApplication.delayCall -= Rebuild;
             _mount?.Dispose();
             _mount = null;
             if (_factoryEditor != null) DestroyImmediate(_factoryEditor);
-            if (_gameHost != null) DestroyImmediate(_gameHost);
-        }
-
-        private void OnPlayModeChanged(PlayModeStateChange change) {
-            if (change == PlayModeStateChange.ExitingEditMode && _gameHost != null) DestroyImmediate(_gameHost);
-            if (change == PlayModeStateChange.EnteredEditMode) QueueRebuild();
         }
 
         internal void QueueRebuild() {
@@ -249,23 +237,11 @@ namespace LumaFlow.Editor {
                 _mount = null;
                 _runtime.Clear();
                 _generated.Clear();
-                if (_gameHost != null) DestroyImmediate(_gameHost);
                 return;
             }
             try {
-                var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_definition));
-                if (string.IsNullOrEmpty(guid)) throw new InvalidOperationException("Save the preview factory as an asset first.");
-                const string generatedRoot = "Assets/LumaFlowGenerated";
-                if (!AssetDatabase.IsValidFolder(generatedRoot)) AssetDatabase.CreateFolder("Assets", "LumaFlowGenerated");
-                var folder = generatedRoot + "/" + guid;
-                if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(generatedRoot, guid);
-                var export = UxmlPreviewExporter.Export(_definition.CreateWidget(), "Preview.uss");
-                WriteChanged(folder + "/Preview.uss", export.Uss);
-                WriteChanged(folder + "/Preview.uxml", export.Uxml);
-                AssetDatabase.ImportAsset(folder + "/Preview.uss", ImportAssetOptions.ForceSynchronousImport);
-                AssetDatabase.ImportAsset(folder + "/Preview.uxml", ImportAssetOptions.ForceSynchronousImport);
-                var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(folder + "/Preview.uxml");
-                if (tree == null) throw new InvalidOperationException("Unity could not import the generated UXML.");
+                var tree = UxmlPreviewGenerator.Generate(_definition, out var uxmlPath);
+                var folder = Path.GetDirectoryName(uxmlPath)!.Replace('\\', '/');
                 _outputFolder = folder;
                 _mount?.Dispose();
                 _mount = null;
@@ -273,8 +249,6 @@ namespace LumaFlow.Editor {
                 _generated.Clear();
                 _mount = global::LumaFlow.LumaFlow.Mount(_definition.CreateWidget(), _runtime);
                 tree.CloneTree(_generated);
-                if (_gameHost != null) DestroyImmediate(_gameHost);
-                if (_showGameView) ShowInGameView(tree, folder);
                 _status!.text = "Updated " + DateTime.Now.ToString("HH:mm:ss") + " · visual snapshot (no callbacks)";
                 _status.tooltip = folder + "/Preview.uxml";
             } catch (Exception exception) {
@@ -283,23 +257,36 @@ namespace LumaFlow.Editor {
             }
         }
 
-        private void ShowInGameView(VisualTreeAsset tree, string folder) {
-            var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>(folder + "/PreviewPanel.asset");
-            if (panel == null) {
-                var themePath = AssetDatabase.FindAssets("t:ThemeStyleSheet").Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault();
-                if (themePath == null) throw new InvalidOperationException("Create a UI Toolkit Theme Style Sheet asset for Game View preview.");
-                panel = CreateInstance<PanelSettings>();
-                panel.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(themePath);
-                AssetDatabase.CreateAsset(panel, folder + "/PreviewPanel.asset");
+        private void BindSelectedDocument() {
+            if (_definition == null) {
+                _status!.text = "Select a preview factory first.";
+                return;
             }
-            _gameHost = new GameObject("LumaFlow UXML preview (temporary)") { hideFlags = HideFlags.HideAndDontSave };
-            var document = _gameHost.AddComponent<UIDocument>();
-            document.panelSettings = panel;
-            document.visualTreeAsset = tree;
-        }
 
-        private static void WriteChanged(string path, string contents) {
-            if (!File.Exists(path) || File.ReadAllText(path) != contents) File.WriteAllText(path, contents);
+            var document = Selection.activeGameObject?.GetComponent<UIDocument>();
+            if (document == null) {
+                _status!.text = "Select a scene GameObject containing UIDocument, then bind again.";
+                return;
+            }
+
+            if (document.panelSettings == null) {
+                _status!.text = "The selected UIDocument needs Panel Settings before it can render in Game View.";
+                return;
+            }
+
+            try {
+                var tree = UxmlPreviewGenerator.Generate(_definition, out var path);
+                Undo.RecordObject(document, "Bind LumaFlow UXML preview");
+                document.visualTreeAsset = tree;
+                EditorUtility.SetDirty(document);
+                _outputFolder = Path.GetDirectoryName(path)!.Replace('\\', '/');
+                _status!.text = "Bound to " + document.gameObject.name
+                    + " · leave Play Mode stopped; C# compilation now regenerates this UXML automatically.";
+                Selection.activeObject = document.gameObject;
+            } catch (Exception exception) {
+                _status!.text = "Binding failed: " + exception.Message;
+                Debug.LogException(exception);
+            }
         }
     }
 
@@ -307,6 +294,7 @@ namespace LumaFlow.Editor {
     internal sealed class UxmlPreviewDefinitionInspector : UnityEditor.Editor {
         public override void OnInspectorGUI() {
             if (!DrawDefaultInspector()) return;
+            UxmlPreviewAutoGenerator.Schedule();
             foreach (var window in Resources.FindObjectsOfTypeAll<UxmlPreviewWindow>()) window.AutoRebuild();
         }
     }

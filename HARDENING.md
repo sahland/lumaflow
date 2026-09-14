@@ -49,7 +49,10 @@ UXML/USS from the existing mount/style mappers. Initial scope covers ordinary
 containers, labels, buttons and asset-backed images. A Unity 6000.4.5f1 isolated
 `-noUpm` smoke run imported the assets and passed recursive layout/color/text
 parity. This bypasses the local UPM issue; it is not package installation evidence.
-The broader preview milestone remains open for control adapters and verification
-of Game View/reload behavior in the interactive Editor.
+Saved preview definitions now regenerate stable UXML/USS assets after assembly
+reload without requiring the authoring window. A selected scene UIDocument can
+be bound once and then displays that stable asset in Edit Mode. The broader
+preview milestone remains open for control adapters and interactive verification
+of Game View refresh after reload.
 
 Do not mark runtime or release items complete based only on static inspection.

@@ -6,18 +6,31 @@ nodes, serializes its native elements and inline styles, then disposes the mount
 Layout and styling therefore use the same mappers as ordinary LumaFlow code.
 This is an experimental snapshot exporter, not a replacement runtime backend.
 
-## Try the prototype
+## Automatic Game View workflow
 
 1. Create an asset using **Assets > Create > LumaFlow > UXML Preview Demo**.
-2. Open **Tools > LumaFlow > UXML Preview (Experimental)** and select that asset.
-3. Edit preview data directly in the window's sidebar. **Auto refresh** regenerates
-   after data edits; **Generate** remains available for manual refresh.
-   **Edit factory C#** opens the selected factory's source.
-4. Edit the asset's preview data, or edit its C# factory and let Unity recompile.
-   With the window open, preview generation runs again after assembly reload.
-5. Click **Toggle Game View preview** to display the generated tree through a
-   temporary UIDocument in Game View. A Theme Style Sheet asset is required;
-   the generated PanelSettings asset can be configured for your project's theme.
+2. Add a `UIDocument` to a scene GameObject and assign its Panel Settings.
+3. Open **Tools > LumaFlow > UXML Preview (Experimental)**, select the factory,
+   select the `UIDocument` GameObject in Hierarchy, then click
+   **Bind selected UIDocument** once.
+4. Close the preview window if you want. Keep Game View open outside Play Mode.
+5. Edit the C# widget factory. After Unity recompiles the assembly, LumaFlow
+   regenerates the same UXML/USS assets. The `UIDocument` keeps its stable asset
+   reference, so UI Toolkit refreshes the Game View without entering Play Mode.
+
+Changing serialized preview data also regenerates automatically. The factory
+asset has an **Auto Generate** checkbox. Disable it to opt out, then use
+**Tools > LumaFlow > Regenerate All UXML Previews** when a manual refresh is
+needed. The global generator does not require the preview window to be open.
+
+You can skip the binding button and assign the generated `Preview.uxml` directly
+to a UIDocument's Source Asset. The result is the same.
+
+## Optional authoring window
+
+Edit preview data directly in the sidebar. **Auto refresh** regenerates after
+data edits; **Generate** remains available for manual refresh. **Edit factory C#**
+opens the selected factory's source.
 
 Generated files live under `Assets/LumaFlowGenerated/<factory-asset-guid>/`.
 The window opens in single-preview mode. Enable **Compare runtime** to display
@@ -28,9 +41,9 @@ not the actual Game View resolution or the generated layout rules.
 **Open UXML**, **Open USS** and **Show generated files** provide direct access to
 the output. **New demo** creates and selects a factory without leaving the window.
 Unchanged files are not rewritten. Edit the factory rather than these files.
-You can also assign `Preview.uxml` to your own UIDocument. The temporary preview
-   object is removed when the window closes or Play Mode starts; it is not saved
-into your scene. PanelSettings and generated assets remain available.
+Binding uses Undo and only assigns `UIDocument.visualTreeAsset`; it does not
+create or save scene objects. The selected document must already have Panel
+Settings. Generated assets remain stable across regeneration.
 
 ## Your own factory
 
@@ -60,7 +73,8 @@ asset references cannot be exported either.
 ## Validation
 
 `UxmlPreviewTests` covers escaping, culture-independent numbers, deterministic
-output, callback isolation and rejected Native cleanup. The standalone
+output, stable generated asset identity, authoring controls, callback isolation
+and rejected Native cleanup. The standalone
 `Tools/LumaFlow/Validation/UxmlPreviewSmoke.cs.txt` harness imports the generated
 assets and compares native hierarchy, text, geometry and colors on a real Unity
 Editor panel. It can run in an isolated project with `-noUpm`; that bypasses local
@@ -76,5 +90,5 @@ It requires a .NET SDK and the development project's cached NUnit assembly,
 compiles the current runtime and preview sources, and writes results into a new
 isolated project. Existing output directories are never overwritten. Four
 regression methods and the imported layout comparison passed on Unity 6000.4.5f1.
-Game View presentation and automatic reload in the interactive editor remain
-manual checks for this prototype.
+Game View presentation after assembly reload remains an interactive Editor check;
+the generated asset identity and regeneration path are automated tests.
