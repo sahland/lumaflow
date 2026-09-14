@@ -1,58 +1,97 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
 namespace LumaFlow.Editor {
     [InitializeOnLoad]
     internal static class UxmlPreviewAutoGenerator {
+        private static readonly HashSet<string> PendingDefinitions = new(StringComparer.Ordinal);
+        private static bool _generateAll;
         private static bool _queued;
         private static bool _running;
 
         static UxmlPreviewAutoGenerator() {
-            Schedule();
+            ScheduleAll();
         }
 
-        internal static void Schedule() {
-            if (_queued || EditorApplication.isPlayingOrWillChangePlaymode) return;
-            _queued = true;
-            EditorApplication.delayCall += GenerateAll;
+        internal static void Schedule() => ScheduleAll();
+
+        internal static void Schedule(UxmlPreviewDefinition definition) {
+            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(definition));
+            if (string.IsNullOrEmpty(guid)) return;
+            PendingDefinitions.Add(guid);
+            QueueGeneration();
         }
 
         [MenuItem("Tools/LumaFlow/Regenerate All UXML Previews")]
         internal static void GenerateAll() {
-            EditorApplication.delayCall -= GenerateAll;
+            ScheduleAll();
+        }
+
+        private static void ScheduleAll() {
+            _generateAll = true;
+            QueueGeneration();
+        }
+
+        private static void QueueGeneration() {
+            if (_queued || EditorApplication.isPlayingOrWillChangePlaymode) return;
+            _queued = true;
+            EditorApplication.delayCall += GenerateQueued;
+        }
+
+        private static void GenerateQueued() {
+            EditorApplication.delayCall -= GenerateQueued;
             _queued = false;
             if (_running || EditorApplication.isCompiling || EditorApplication.isUpdating
                 || EditorApplication.isPlayingOrWillChangePlaymode) {
-                Schedule();
+                QueueGeneration();
                 return;
             }
 
+            var generateAll = _generateAll;
+            var definitions = generateAll
+                ? AssetDatabase.FindAssets("t:UxmlPreviewDefinition")
+                : new List<string>(PendingDefinitions).ToArray();
+            _generateAll = false;
+            PendingDefinitions.Clear();
             _running = true;
             try {
-                foreach (var guid in AssetDatabase.FindAssets("t:UxmlPreviewDefinition")) {
-                    var path = AssetDatabase.GUIDToAssetPath(guid);
-                    var definition = AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(path);
-                    if (definition == null || !definition.AutoGenerate) continue;
-                    try {
-                        UxmlPreviewGenerator.Generate(definition, out _);
-                    } catch (Exception exception) {
-                        Debug.LogError($"LumaFlow UXML preview generation failed for '{path}': {exception.Message}", definition);
-                        Debug.LogException(exception, definition);
-                    }
-                }
-                foreach (var factory in LumaPreviewRegistry.Factories) {
-                    try {
-                        UxmlPreviewGenerator.Generate(factory, out _);
-                    } catch (Exception exception) {
-                        Debug.LogError($"LumaFlow UXML preview generation failed for '{factory.DisplayName}': {exception.Message}");
-                        Debug.LogException(exception);
-                    }
-                }
+                foreach (var guid in definitions) GenerateDefinition(guid);
+                if (!generateAll) return;
+                foreach (var factory in LumaPreviewRegistry.Factories) GenerateFactory(factory);
             } finally {
                 _running = false;
+            }
+        }
+
+        private static void GenerateDefinition(string guid) {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var definition = AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(path);
+            if (definition == null || !definition.AutoGenerate) return;
+            var statusId = "asset:" + guid;
+            try {
+                UxmlPreviewGenerator.Generate(definition, out _);
+                UxmlPreviewStatus.ReportSuccess(statusId);
+            } catch (Exception exception) {
+                UxmlPreviewStatus.ReportFailure(statusId, path, exception);
+                Debug.LogError($"LumaFlow UXML preview generation failed for '{path}': {exception.Message}", definition);
+                Debug.LogException(exception, definition);
+            }
+        }
+
+        private static void GenerateFactory(LumaPreviewFactory factory) {
+            var statusId = "code:" + factory.Id;
+            try {
+                UxmlPreviewGenerator.Generate(factory, out _);
+                UxmlPreviewStatus.ReportSuccess(statusId);
+            } catch (Exception exception) {
+                UxmlPreviewStatus.ReportFailure(statusId, factory.DisplayName, exception);
+                Debug.LogError($"LumaFlow UXML preview generation failed for '{factory.DisplayName}': {exception.Message}");
+                Debug.LogException(exception);
             }
         }
     }
@@ -71,9 +110,8 @@ namespace LumaFlow.Editor {
 
             foreach (var path in importedAssets) {
                 if (!path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)) continue;
-                if (AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(path) == null) continue;
-                UxmlPreviewAutoGenerator.Schedule();
-                return;
+                var definition = AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(path);
+                if (definition != null) UxmlPreviewAutoGenerator.Schedule(definition);
             }
         }
     }

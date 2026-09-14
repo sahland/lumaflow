@@ -38,6 +38,45 @@ namespace LumaFlow.Editor.Tests {
         }
 
         [Test]
+        public void FailedRegenerationPreservesTheLastSuccessfulUxml() {
+            var rootExisted = AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot);
+            var definitionPath = "Assets/FailingUxmlPreviewDefinition-" + Guid.NewGuid().ToString("N") + ".asset";
+            var definition = ScriptableObject.CreateInstance<FailingPreviewDefinition>();
+            AssetDatabase.CreateAsset(definition, definitionPath);
+            var generatedFolder = "";
+            try {
+                UxmlPreviewGenerator.Generate(definition, out var uxmlPath);
+                generatedFolder = UxmlPreviewGenerator.GetGeneratedFolder(definition);
+                var successful = File.ReadAllText(uxmlPath);
+                definition.Fail = true;
+                Assert.Throws<InvalidOperationException>(() => UxmlPreviewGenerator.Generate(definition, out _));
+                Assert.That(File.ReadAllText(uxmlPath), Is.EqualTo(successful));
+            } finally {
+                if (!string.IsNullOrEmpty(generatedFolder)) AssetDatabase.DeleteAsset(generatedFolder);
+                AssetDatabase.DeleteAsset(definitionPath);
+                if (!rootExisted && AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot))
+                    AssetDatabase.DeleteAsset(UxmlPreviewGenerator.GeneratedRoot);
+            }
+        }
+
+        [Test]
+        public void PreviewFailureStatusClearsOnlyAfterTheSameSourceSucceeds() {
+            UxmlPreviewStatus.Clear();
+            try {
+                UxmlPreviewStatus.ReportFailure("first", "First preview", new InvalidOperationException("broken"));
+                UxmlPreviewStatus.ReportFailure("second", "Second preview", new InvalidOperationException("also broken"));
+                Assert.That(UxmlPreviewStatus.FailureCount, Is.EqualTo(2));
+                Assert.That(UxmlPreviewStatus.CurrentMessage, Does.Contain("last successful UXML"));
+                UxmlPreviewStatus.ReportSuccess("first");
+                Assert.That(UxmlPreviewStatus.FailureCount, Is.EqualTo(1));
+                UxmlPreviewStatus.ReportSuccess("second");
+                Assert.That(UxmlPreviewStatus.CurrentMessage, Is.Null);
+            } finally {
+                UxmlPreviewStatus.Clear();
+            }
+        }
+
+        [Test]
         public void WindowControlsResizeCanvasWithoutChangingItsLayoutScale() {
             var window = ScriptableObject.CreateInstance<UxmlPreviewWindow>();
             try {
@@ -160,5 +199,14 @@ namespace LumaFlow.Editor.Tests {
 
         [LumaPreview("Tests / Code preview")]
         private static Widget CreateCodePreview() => new Text("Code preview");
+
+        private sealed class FailingPreviewDefinition : UxmlPreviewDefinition {
+            internal bool Fail { get; set; }
+
+            public override Widget CreateWidget() {
+                if (Fail) throw new InvalidOperationException("Intentional preview failure.");
+                return new Text("Last known good");
+            }
+        }
     }
 }

@@ -87,6 +87,7 @@ namespace LumaFlow.Editor {
             compare.RegisterValueChangedCallback(change => {
                 _compare = change.newValue;
                 if (_runtimePane != null) _runtimePane.style.display = _compare ? DisplayStyle.Flex : DisplayStyle.None;
+                QueueRebuild();
             });
             options.Add(compare);
             var presets = new PopupField<string>(new List<string> { "Custom", "Phone 390×844", "Tablet 768×1024", "Desktop 1920×1080" }, 0);
@@ -278,13 +279,17 @@ namespace LumaFlow.Editor {
                 _mount = null;
                 _runtime.Clear();
                 _generated.Clear();
-                var widget = _definition != null ? _definition.CreateWidget() : codeFactory!.CreateWidget();
-                _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime);
+                if (_compare) {
+                    var widget = _definition != null ? _definition.CreateWidget() : codeFactory!.CreateWidget();
+                    _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime);
+                }
                 tree.CloneTree(_generated);
+                UxmlPreviewStatus.ReportSuccess(CurrentStatusId(codeFactory));
                 _status!.text = "Updated " + DateTime.Now.ToString("HH:mm:ss") + " · visual snapshot (no callbacks)";
                 _status.tooltip = folder + "/Preview.uxml";
             } catch (Exception exception) {
                 _status!.text = "Preview failed: " + exception.Message;
+                UxmlPreviewStatus.ReportFailure(CurrentStatusId(codeFactory), CurrentSourceLabel(codeFactory), exception);
                 Debug.LogException(exception);
             }
         }
@@ -315,16 +320,26 @@ namespace LumaFlow.Editor {
                 document.visualTreeAsset = tree;
                 EditorUtility.SetDirty(document);
                 _outputFolder = Path.GetDirectoryName(path)!.Replace('\\', '/');
+                UxmlPreviewStatus.ReportSuccess(CurrentStatusId(codeFactory));
                 _status!.text = "Bound to " + document.gameObject.name
                     + " · leave Play Mode stopped; C# compilation now regenerates this UXML automatically.";
                 Selection.activeObject = document.gameObject;
             } catch (Exception exception) {
                 _status!.text = "Binding failed: " + exception.Message;
+                UxmlPreviewStatus.ReportFailure(CurrentStatusId(codeFactory), CurrentSourceLabel(codeFactory), exception);
                 Debug.LogException(exception);
             }
         }
 
         private LumaPreviewFactory? CurrentCodeFactory() => LumaPreviewRegistry.Find(_codeFactoryId);
+
+        private string CurrentStatusId(LumaPreviewFactory? codeFactory) => _definition != null
+            ? "asset:" + AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_definition))
+            : "code:" + codeFactory!.Id;
+
+        private string CurrentSourceLabel(LumaPreviewFactory? codeFactory) => _definition != null
+            ? AssetDatabase.GetAssetPath(_definition)
+            : codeFactory!.DisplayName;
 
         private void OpenCodeFactory() {
             var factory = CurrentCodeFactory();
@@ -341,7 +356,7 @@ namespace LumaFlow.Editor {
     internal sealed class UxmlPreviewDefinitionInspector : UnityEditor.Editor {
         public override void OnInspectorGUI() {
             if (!DrawDefaultInspector()) return;
-            UxmlPreviewAutoGenerator.Schedule();
+            UxmlPreviewAutoGenerator.Schedule((UxmlPreviewDefinition)target);
             foreach (var window in Resources.FindObjectsOfTypeAll<UxmlPreviewWindow>()) window.AutoRebuild();
         }
     }

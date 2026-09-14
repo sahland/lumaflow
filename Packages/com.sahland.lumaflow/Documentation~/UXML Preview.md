@@ -22,6 +22,17 @@ Changing serialized preview data also regenerates automatically. The factory
 asset has an **Auto Generate** checkbox. Disable it to opt out, then use
 **Tools > LumaFlow > Regenerate All UXML Previews** when a manual refresh is
 needed. The global generator does not require the preview window to be open.
+Editing one preview asset queues only that asset; a domain reload or the manual
+menu command regenerates all enabled asset factories and discovered code
+factories. Repeated imports are coalesced into one delayed generation pass.
+
+Generation is transactional from the author's point of view: LumaFlow finishes
+building and exporting the new snapshot before replacing either generated file.
+If a factory throws or contains an unsupported widget, the bound `UIDocument`
+continues showing its last successful UXML. An error notification appears in an
+open Game View with the failing factory and concise reason; a later successful
+generation clears that factory's notification. Full exception details remain in
+the Console.
 
 You can skip the binding button and assign the generated `Preview.uxml` directly
 to a UIDocument's Source Asset. The result is the same.

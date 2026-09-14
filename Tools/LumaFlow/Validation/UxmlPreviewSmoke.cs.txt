@@ -26,7 +26,7 @@ public static class UxmlPreviewSmoke {
                     count++;
                 }
             }
-            if (count < 8) throw new Exception("Preview regression tests were not discovered");
+            if (count < 10) throw new Exception("Preview regression tests were not discovered");
             Debug.Log($"UXML_PREVIEW_REGRESSIONS_PASSED: {count}");
             var definition = ScriptableObject.CreateInstance<UxmlPreviewDemo>();
             var export = UxmlPreviewExporter.Export(definition.CreateWidget(), "Preview.uss");
