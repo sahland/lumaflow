@@ -47,6 +47,32 @@ Settings. Generated assets remain stable across regeneration.
 
 ## Your own factory
 
+For a preview with no asset setup, place a static factory in an Editor assembly:
+
+```csharp
+using LumaFlow;
+using LumaFlow.Editor;
+
+internal static class DashboardPreviews {
+    [LumaPreview("Dashboard / Default")]
+    private static Widget Default() => new DashboardScreen();
+}
+```
+
+The method must be static, parameterless, non-generic and return `Widget`.
+It appears automatically in the window's **Code preview** list. Select it and
+bind a `UIDocument` once. After later C# compilations, LumaFlow discovers the
+method again and regenerates the same UXML path, so the edit-mode Game View
+keeps its reference. The method and its containing class may be non-public.
+Keep preview methods in an Editor assembly because `LumaPreviewAttribute` is an
+editor-only API and is not included in player builds.
+
+Use a code preview for fixed states that are naturally expressed in C#. Use a
+`UxmlPreviewDefinition` asset when designers need serialized controls in the
+Inspector or several editable data variants.
+
+### Asset-backed factory
+
 Place a subclass of `LumaFlow.Editor.UxmlPreviewDefinition` in an Editor assembly.
 Add a `CreateAssetMenu` attribute and implement `public override Widget
 CreateWidget()`. Use serialized fields for preview data. Existing stateless

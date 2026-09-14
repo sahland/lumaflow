@@ -18,12 +18,21 @@ namespace LumaFlow.Editor {
                 throw new InvalidOperationException("Save the preview definition as an asset before generating UXML.");
             }
 
+            return Generate(definition.CreateWidget(), guid, out uxmlPath);
+        }
+
+        internal static VisualTreeAsset Generate(LumaPreviewFactory factory, out string uxmlPath) {
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
+            return Generate(factory.CreateWidget(), "code-" + UnityEngine.Hash128.Compute(factory.Id), out uxmlPath);
+        }
+
+        private static VisualTreeAsset Generate(Widget widget, string folderName, out string uxmlPath) {
             EnsureFolder("Assets", "LumaFlowGenerated");
-            var folder = GeneratedRoot + "/" + guid;
-            EnsureFolder(GeneratedRoot, guid);
+            var folder = GeneratedRoot + "/" + folderName;
+            EnsureFolder(GeneratedRoot, folderName);
             var ussPath = folder + "/Preview.uss";
             uxmlPath = folder + "/Preview.uxml";
-            var export = UxmlPreviewExporter.Export(definition.CreateWidget(), "Preview.uss");
+            var export = UxmlPreviewExporter.Export(widget, "Preview.uss");
             var ussChanged = WriteChanged(ussPath, export.Uss);
             var uxmlChanged = WriteChanged(uxmlPath, export.Uxml);
             if (ussChanged) AssetDatabase.ImportAsset(ussPath, ImportAssetOptions.ForceSynchronousImport);
@@ -37,6 +46,10 @@ namespace LumaFlow.Editor {
             var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(definition));
             return string.IsNullOrEmpty(guid) ? string.Empty : GeneratedRoot + "/" + guid;
         }
+
+        internal static string GetGeneratedFolder(LumaPreviewFactory factory) => factory == null
+            ? throw new ArgumentNullException(nameof(factory))
+            : GeneratedRoot + "/code-" + UnityEngine.Hash128.Compute(factory.Id);
 
         private static void EnsureFolder(string parent, string name) {
             var path = parent + "/" + name;

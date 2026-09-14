@@ -13,6 +13,7 @@ using NativeScrollView = UnityEngine.UIElements.ScrollView;
 namespace LumaFlow.Editor {
     public sealed class UxmlPreviewWindow : EditorWindow {
         [SerializeField] private UxmlPreviewDefinition? _definition;
+        [SerializeField] private string _codeFactoryId = "";
         [SerializeField] private bool _compare;
         [SerializeField] private bool _autoRefresh = true;
         [SerializeField] private int _viewportWidth = 640;
@@ -27,6 +28,7 @@ namespace LumaFlow.Editor {
         private VisualElement? _generated;
         private Label? _status;
         private bool _queued;
+        private PopupField<string>? _codeFactoryField;
 
         [MenuItem("Tools/LumaFlow/UXML Preview (Experimental)")]
         public static void Open() => GetWindow<UxmlPreviewWindow>("LumaFlow UXML");
@@ -34,7 +36,7 @@ namespace LumaFlow.Editor {
         public void CreateGUI() {
             rootVisualElement.Clear();
             minSize = new Vector2(800, 520);
-            if (_definition == null) {
+            if (_definition == null && string.IsNullOrEmpty(_codeFactoryId)) {
                 var existing = AssetDatabase.FindAssets("t:UxmlPreviewDefinition").FirstOrDefault();
                 if (existing != null) _definition = AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(AssetDatabase.GUIDToAssetPath(existing));
             }
@@ -46,6 +48,10 @@ namespace LumaFlow.Editor {
             field.style.flexGrow = 1;
             field.RegisterValueChangedCallback(change => {
                 _definition = change.newValue as UxmlPreviewDefinition;
+                if (_definition != null) {
+                    _codeFactoryId = "";
+                    _codeFactoryField?.SetValueWithoutNotify("None (use asset)");
+                }
                 RefreshInspector();
                 _outputFolder = null;
                 QueueRebuild();
@@ -56,6 +62,24 @@ namespace LumaFlow.Editor {
             toolbar.Add(new ToolbarButton(BindSelectedDocument) { text = "Bind selected UIDocument" });
             rootVisualElement.Add(toolbar);
             var options = new Toolbar();
+            var codeFactories = LumaPreviewRegistry.Factories;
+            var codeChoices = new List<string> { "None (use asset)" };
+            codeChoices.AddRange(codeFactories.Select(factory => factory.DisplayName));
+            var selectedCodeIndex = Math.Max(0, codeFactories.ToList().FindIndex(factory => factory.Id == _codeFactoryId) + 1);
+            _codeFactoryField = new PopupField<string>("Code preview", codeChoices, selectedCodeIndex);
+            _codeFactoryField.name = "code-preview";
+            _codeFactoryField.RegisterValueChangedCallback(change => {
+                var index = codeChoices.IndexOf(change.newValue) - 1;
+                _codeFactoryId = index >= 0 ? codeFactories[index].Id : "";
+                if (index >= 0) {
+                    _definition = null;
+                    field.SetValueWithoutNotify(null);
+                }
+                RefreshInspector();
+                _outputFolder = null;
+                QueueRebuild();
+            });
+            options.Add(_codeFactoryField);
             var auto = new ToolbarToggle { text = "Auto refresh", value = _autoRefresh };
             auto.RegisterValueChangedCallback(change => { _autoRefresh = change.newValue; if (_autoRefresh) QueueRebuild(); });
             options.Add(auto);
@@ -110,11 +134,15 @@ namespace LumaFlow.Editor {
             sidebar.Add(new Label("Preview data"));
             _inspector = new IMGUIContainer(() => {
                 if (_factoryEditor != null && _factoryEditor.DrawDefaultInspector()) AutoRebuild();
-                else if (_factoryEditor == null) EditorGUILayout.HelpBox("Select a factory or create a demo to begin.", MessageType.Info);
+                else if (CurrentCodeFactory() != null)
+                    EditorGUILayout.HelpBox("This preview comes from a [LumaPreview] method. Edit its C# source to change it.", MessageType.Info);
+                else if (_factoryEditor == null)
+                    EditorGUILayout.HelpBox("Select a factory or create a demo to begin.", MessageType.Info);
             });
             sidebar.Add(_inspector);
             sidebar.Add(new UnityEngine.UIElements.Button(() => {
                 if (_definition != null) AssetDatabase.OpenAsset(MonoScript.FromScriptableObject(_definition));
+                else OpenCodeFactory();
             }) { text = "Edit factory C#" });
             sidebar.Add(new UnityEngine.UIElements.Button(() => OpenGenerated("Preview.uxml")) { text = "Open UXML" });
             sidebar.Add(new UnityEngine.UIElements.Button(() => OpenGenerated("Preview.uss")) { text = "Open USS" });
@@ -232,7 +260,8 @@ namespace LumaFlow.Editor {
             _queued = false;
             if (this == null || _runtime == null || _generated == null) return;
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-            if (_definition == null) {
+            var codeFactory = CurrentCodeFactory();
+            if (_definition == null && codeFactory == null) {
                 _mount?.Dispose();
                 _mount = null;
                 _runtime.Clear();
@@ -240,14 +269,17 @@ namespace LumaFlow.Editor {
                 return;
             }
             try {
-                var tree = UxmlPreviewGenerator.Generate(_definition, out var uxmlPath);
+                var tree = _definition != null
+                    ? UxmlPreviewGenerator.Generate(_definition, out var uxmlPath)
+                    : UxmlPreviewGenerator.Generate(codeFactory!, out uxmlPath);
                 var folder = Path.GetDirectoryName(uxmlPath)!.Replace('\\', '/');
                 _outputFolder = folder;
                 _mount?.Dispose();
                 _mount = null;
                 _runtime.Clear();
                 _generated.Clear();
-                _mount = global::LumaFlow.LumaFlow.Mount(_definition.CreateWidget(), _runtime);
+                var widget = _definition != null ? _definition.CreateWidget() : codeFactory!.CreateWidget();
+                _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime);
                 tree.CloneTree(_generated);
                 _status!.text = "Updated " + DateTime.Now.ToString("HH:mm:ss") + " · visual snapshot (no callbacks)";
                 _status.tooltip = folder + "/Preview.uxml";
@@ -258,7 +290,8 @@ namespace LumaFlow.Editor {
         }
 
         private void BindSelectedDocument() {
-            if (_definition == null) {
+            var codeFactory = CurrentCodeFactory();
+            if (_definition == null && codeFactory == null) {
                 _status!.text = "Select a preview factory first.";
                 return;
             }
@@ -275,7 +308,9 @@ namespace LumaFlow.Editor {
             }
 
             try {
-                var tree = UxmlPreviewGenerator.Generate(_definition, out var path);
+                var tree = _definition != null
+                    ? UxmlPreviewGenerator.Generate(_definition, out var path)
+                    : UxmlPreviewGenerator.Generate(codeFactory!, out path);
                 Undo.RecordObject(document, "Bind LumaFlow UXML preview");
                 document.visualTreeAsset = tree;
                 EditorUtility.SetDirty(document);
@@ -287,6 +322,18 @@ namespace LumaFlow.Editor {
                 _status!.text = "Binding failed: " + exception.Message;
                 Debug.LogException(exception);
             }
+        }
+
+        private LumaPreviewFactory? CurrentCodeFactory() => LumaPreviewRegistry.Find(_codeFactoryId);
+
+        private void OpenCodeFactory() {
+            var factory = CurrentCodeFactory();
+            if (factory == null) return;
+            var script = AssetDatabase.FindAssets(factory.Method.DeclaringType!.Name + " t:MonoScript")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<MonoScript>)
+                .FirstOrDefault(candidate => candidate != null && candidate.GetClass() == factory.Method.DeclaringType);
+            if (script != null) AssetDatabase.OpenAsset(script);
         }
     }
 

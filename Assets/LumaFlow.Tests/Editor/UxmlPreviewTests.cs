@@ -43,6 +43,7 @@ namespace LumaFlow.Editor.Tests {
                 window.Show();
                 window.CreateGUI();
                 var root = window.rootVisualElement;
+                Assert.That(root.Q<PopupField<string>>("code-preview").choices, Does.Contain("Tests / Code preview"));
                 var viewport = root.Q<VisualElement>("generated-viewport");
                 root.Q<IntegerField>("viewport-width").value = 800;
                 root.Q<PopupField<string>>("viewport-zoom").value = "50%";
@@ -94,5 +95,8 @@ namespace LumaFlow.Editor.Tests {
         public void ExportRequiresSiblingStylesheet() {
             Assert.Throws<ArgumentException>(() => UxmlPreviewExporter.Export(new Text("Test"), "../other.uss"));
         }
+
+        [LumaPreview("Tests / Code preview")]
+        private static Widget CreateCodePreview() => new Text("Code preview");
     }
 }

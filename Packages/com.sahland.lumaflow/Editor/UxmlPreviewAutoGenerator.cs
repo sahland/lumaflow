@@ -43,6 +43,14 @@ namespace LumaFlow.Editor {
                         Debug.LogException(exception, definition);
                     }
                 }
+                foreach (var factory in LumaPreviewRegistry.Factories) {
+                    try {
+                        UxmlPreviewGenerator.Generate(factory, out _);
+                    } catch (Exception exception) {
+                        Debug.LogError($"LumaFlow UXML preview generation failed for '{factory.DisplayName}': {exception.Message}");
+                        Debug.LogException(exception);
+                    }
+                }
             } finally {
                 _running = false;
             }

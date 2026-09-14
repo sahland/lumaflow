@@ -25,7 +25,10 @@ $runtimeSources = @(Get-ChildItem "$package/Runtime" -Recurse -Filter '*.cs' | F
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$plugins/LumaFlow.Runtime.dll" $references $runtimeSources
 if ($LASTEXITCODE) { throw 'Runtime compilation failed.' }
 $references += "-r:$plugins/LumaFlow.Runtime.dll"
-$previewSources = @(Get-ChildItem "$package/Editor/UxmlPreview*.cs" | ForEach-Object FullName)
+$previewSources = @(
+    Get-ChildItem "$package/Editor/UxmlPreview*.cs" | ForEach-Object FullName
+    "$package/Editor/LumaPreviewAttribute.cs"
+)
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Preview.Compile.dll" $references $previewSources
 if ($LASTEXITCODE) { throw 'Preview compilation failed.' }
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Preview.Tests.dll" $references `
