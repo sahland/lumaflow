@@ -23,6 +23,8 @@ namespace LumaFlow.Editor {
         public static void Open() => GetWindow<UxmlPreviewWindow>("LumaFlow UXML");
 
         public void CreateGUI() {
+            minSize = new Vector2(940, 520);
+            rootVisualElement.style.backgroundColor = (Color)new Color32(32, 35, 42, 255);
             var toolbar = new Toolbar();
             var field = new ObjectField("Preview factory") {
                 objectType = typeof(UxmlPreviewDefinition), allowSceneObjects = false, value = _definition
@@ -30,13 +32,22 @@ namespace LumaFlow.Editor {
             field.RegisterValueChangedCallback(change => { _definition = change.newValue as UxmlPreviewDefinition; QueueRebuild(); });
             toolbar.Add(field);
             toolbar.Add(new ToolbarButton(QueueRebuild) { text = "Generate" });
-            toolbar.Add(new ToolbarButton(() => { _showGameView = !_showGameView; QueueRebuild(); }) { text = "Toggle Game View preview" });
+            var gameView = new ToolbarToggle { text = "Game View", value = _showGameView };
+            gameView.RegisterValueChangedCallback(change => { _showGameView = change.newValue; QueueRebuild(); });
+            toolbar.Add(gameView);
             rootVisualElement.Add(toolbar);
             _status = new Label("Select a saved preview factory asset. Preview executes its C# outside Play Mode.");
+            _status.style.color = (Color)new Color32(184, 200, 214, 255);
+            _status.style.marginLeft = 16;
+            _status.style.marginTop = 12;
+            _status.style.marginBottom = 4;
             rootVisualElement.Add(_status);
             var panes = new VisualElement();
             panes.style.flexDirection = FlexDirection.Row;
             panes.style.flexGrow = 1;
+            panes.style.paddingLeft = 8;
+            panes.style.paddingRight = 8;
+            panes.style.paddingBottom = 8;
             _runtime = AddPane(panes, "Runtime mount");
             _generated = AddPane(panes, "Generated UXML + USS");
             rootVisualElement.Add(panes);
@@ -47,7 +58,14 @@ namespace LumaFlow.Editor {
             var pane = new VisualElement();
             pane.style.flexGrow = 1;
             pane.style.flexBasis = 0;
-            pane.Add(new Label(title));
+            pane.style.marginLeft = 8;
+            pane.style.marginRight = 8;
+            pane.style.marginTop = 8;
+            var label = new Label(title);
+            label.style.color = (Color)new Color32(243, 242, 238, 255);
+            label.style.fontSize = 13;
+            label.style.marginBottom = 12;
+            pane.Add(label);
             var content = new VisualElement();
             content.style.flexGrow = 1;
             pane.Add(content);
@@ -114,7 +132,8 @@ namespace LumaFlow.Editor {
                 tree.CloneTree(_generated);
                 if (_gameHost != null) DestroyImmediate(_gameHost);
                 if (_showGameView) ShowInGameView(tree, folder);
-                _status!.text = folder + "/Preview.uxml — initial visual state; callbacks are not exported.";
+                _status!.text = "Generated · visual snapshot · edit the factory's Inspector fields or C# to update";
+                _status.tooltip = folder + "/Preview.uxml";
             } catch (Exception exception) {
                 _status!.text = "Preview failed: " + exception.Message;
                 Debug.LogException(exception);
