@@ -138,7 +138,8 @@ current Game View dimensions during generation. Its selected branch is a static
 snapshot and regenerates after compilation; it cannot switch branches inside
 the generated UXML without another generation pass.
 Arbitrary C# cannot be serialized to UXML. Runtime-loaded textures without saved
-asset references cannot be exported either.
+asset references cannot be exported either. This currently includes procedural
+`LinearGradient` backgrounds; they remain available in the normal runtime mount.
 
 ## Validation
 

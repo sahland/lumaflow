@@ -13,6 +13,18 @@ namespace LumaFlow {
             BorderRadius? borderRadius = null,
             Border? border = null) {
             BackgroundColor = backgroundColor;
+            BackgroundGradient = null;
+            BorderRadius = borderRadius;
+            Border = border;
+        }
+
+        public BoxDecoration(
+            LinearGradient backgroundGradient,
+            Color? backgroundColor = null,
+            BorderRadius? borderRadius = null,
+            Border? border = null) {
+            BackgroundColor = backgroundColor;
+            BackgroundGradient = backgroundGradient;
             BorderRadius = borderRadius;
             Border = border;
         }
@@ -21,6 +33,9 @@ namespace LumaFlow {
         /// Gets the optional background color.
         /// </summary>
         public Color? BackgroundColor { get; }
+
+        /// <summary>Gets the optional linear background gradient.</summary>
+        public LinearGradient? BackgroundGradient { get; }
 
         /// <summary>
         /// Gets the optional corner radii.

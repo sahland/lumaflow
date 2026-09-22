@@ -6109,6 +6109,39 @@ namespace LumaFlow.Runtime.Tests {
         }
 
         [Test]
+        public void Container_AppliesCachedLinearGradientAndClipping() {
+            var root = new VisualElement();
+            var gradient = new LinearGradient(Color.red, new Color(0f, 0f, 1f, 0.25f), 90f);
+            using var mount = Framework.Mount(
+                new Column(new Widget[] {
+                    new Container(
+                        new Text("First"),
+                        ClipBehavior.HardEdge,
+                        new BoxDecoration(gradient, borderRadius: BorderRadius.All(12f))),
+                    new Container(new Text("Second"), new BoxDecoration(gradient))
+                }),
+                root);
+            var first = root[0][0][0];
+            var second = root[0][0][1];
+            var firstTexture = first.style.backgroundImage.value.texture;
+
+            Assert.That(first.style.overflow.value, Is.EqualTo(Overflow.Hidden));
+            Assert.That(firstTexture, Is.Not.Null);
+            Assert.That(second.style.backgroundImage.value.texture, Is.SameAs(firstTexture));
+            Assert.That(firstTexture!.width, Is.EqualTo(64));
+            Assert.That(firstTexture.height, Is.EqualTo(64));
+        }
+
+        [Test]
+        public void LinearGradient_NormalizesAngleAndRejectsNonFiniteValues() {
+            Assert.That(new LinearGradient(Color.black, Color.white, 450f).Angle, Is.EqualTo(90f));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new LinearGradient(Color.black, Color.white, float.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new Container(new Text("Invalid"), (ClipBehavior)999));
+        }
+
+        [Test]
         public void Text_MapsWrappingOverflowAndMaximumLines() {
             var root = new VisualElement();
             using var mount = Framework.Mount(

@@ -15,6 +15,19 @@ namespace LumaFlow {
             Child = child ?? throw new ArgumentNullException(nameof(child));
             Decoration = decoration;
             Padding = padding;
+            ClipBehavior = ClipBehavior.None;
+        }
+
+        public Container(
+            Widget child,
+            ClipBehavior clipBehavior,
+            BoxDecoration? decoration = null,
+            EdgeInsets? padding = null) {
+            Child = child ?? throw new ArgumentNullException(nameof(child));
+            if (!Enum.IsDefined(typeof(ClipBehavior), clipBehavior)) throw new ArgumentOutOfRangeException(nameof(clipBehavior));
+            Decoration = decoration;
+            Padding = padding;
+            ClipBehavior = clipBehavior;
         }
 
         public Widget Child { get; }
@@ -25,6 +38,8 @@ namespace LumaFlow {
         /// Gets the optional inner padding.
         /// </summary>
         public EdgeInsets? Padding { get; }
+
+        public ClipBehavior ClipBehavior { get; }
 
         internal override WidgetNode CreateNode() {
             return new ContainerNode(this);
@@ -53,6 +68,7 @@ namespace LumaFlow {
             Child = child ?? throw new ArgumentNullException(nameof(child));
             Padding = padding;
             BackgroundColor = decoration.BackgroundColor;
+            BackgroundGradient = decoration.BackgroundGradient;
             BorderRadius = decoration.BorderRadius;
             Border = decoration.Border;
         }
@@ -60,6 +76,7 @@ namespace LumaFlow {
         public Widget Child { get; }
         public EdgeInsets? Padding { get; }
         public Color? BackgroundColor { get; }
+        public LinearGradient? BackgroundGradient { get; }
         public BorderRadius? BorderRadius { get; }
         public Border? Border { get; }
         internal override WidgetNode CreateNode() => new CardNode(this);
@@ -88,7 +105,10 @@ namespace LumaFlow {
             var theme = requiresTheme ? Context.Theme : null;
             var background = card.BackgroundColor ?? theme?.Colors.Surface;
             var radius = card.BorderRadius ?? theme?.Radius.Small;
-            BoxDecorationStyleMapper.Apply(element, new BoxDecoration(background, radius, card.Border));
+            var decoration = card.BackgroundGradient is { } gradient
+                ? new BoxDecoration(gradient, background, radius, card.Border)
+                : new BoxDecoration(background, radius, card.Border);
+            BoxDecorationStyleMapper.Apply(element, decoration);
             var padding = card.Padding ?? (theme is null ? (EdgeInsets?)null : EdgeInsets.All(theme.Spacing.Medium));
             if (padding is { } insets) PaddingStyleMapper.Apply(element, insets);
         }

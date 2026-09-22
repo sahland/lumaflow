@@ -8,8 +8,8 @@ in every form.
 - [x] Replace stale Lucide tooling with checks against the CC0 provenance manifest.
 - [x] Separate Git-UPM and Asset Store payloads and validate generated archives.
 - [ ] Expand CI to minimum/current Unity, clean package installation and builds.
-- [ ] Add C# edit-mode preview refreshed after assembly reload.
-- [ ] Add gradient backgrounds, clipping and other required styling primitives.
+- [x] Add C# edit-mode preview refreshed after assembly reload.
+- [x] Add gradient backgrounds, clipping and other required styling primitives.
 - [ ] Improve relative layout and root size propagation.
 - [ ] Provide native-widget lifecycle hooks and pointer/drag interaction primitives.
 - [ ] Improve composition of buttons and discrete/custom sliders.
@@ -51,8 +51,16 @@ containers, labels, buttons and asset-backed images. A Unity 6000.4.5f1 isolated
 parity. This bypasses the local UPM issue; it is not package installation evidence.
 Saved preview definitions now regenerate stable UXML/USS assets after assembly
 reload without requiring the authoring window. A selected scene UIDocument can
-be bound once and then displays that stable asset in Edit Mode. The broader
-preview milestone remains open for control adapters and interactive verification
-of Game View refresh after reload.
+be bound once and then displays that stable asset in Edit Mode. Common form
+controls, responsive scenarios and direct UIDocument Inspector binding are
+covered by isolated-Editor regression tests. Game View refresh after reload
+remains a manual Editor check.
+
+## Styling primitives
+
+`BoxDecoration` now supports cached two-color linear gradients at arbitrary
+angles. `Container` exposes explicit hard-edge clipping, including rounded-corner
+clipping inherited from its decoration. Gradient textures are immutable, shared
+by value and created once per distinct gradient; widget rebuilds reuse them.
 
 Do not mark runtime or release items complete based only on static inspection.

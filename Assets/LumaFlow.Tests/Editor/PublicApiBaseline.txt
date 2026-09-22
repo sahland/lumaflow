@@ -159,9 +159,11 @@ public struct LumaFlow.BoxConstraints : System.IEquatable<LumaFlow.BoxConstraint
   public virtual bool Equals(LumaFlow.BoxConstraints other)
 
 public struct LumaFlow.BoxDecoration
+  public BoxDecoration(LumaFlow.LinearGradient backgroundGradient, UnityEngine.Color? backgroundColor = null, LumaFlow.BorderRadius? borderRadius = null, LumaFlow.Border? border = null)
   public BoxDecoration(UnityEngine.Color? backgroundColor = null, LumaFlow.BorderRadius? borderRadius = null, LumaFlow.Border? border = null)
   public LumaFlow.Border? Border { get; }
   public LumaFlow.BorderRadius? BorderRadius { get; }
+  public LumaFlow.LinearGradient? BackgroundGradient { get; }
   public UnityEngine.Color? BackgroundColor { get; }
 
 public sealed class LumaFlow.BuildContext
@@ -232,6 +234,7 @@ public sealed class LumaFlow.Card : LumaFlow.Widget
   public LumaFlow.Border? Border { get; }
   public LumaFlow.BorderRadius? BorderRadius { get; }
   public LumaFlow.EdgeInsets? Padding { get; }
+  public LumaFlow.LinearGradient? BackgroundGradient { get; }
   public LumaFlow.Widget Child { get; }
   public UnityEngine.Color? BackgroundColor { get; }
 
@@ -275,6 +278,11 @@ public sealed class LumaFlow.CircleAvatar : LumaFlow.Widget
   public UnityEngine.Color? BackgroundColor { get; }
   public float Radius { get; }
   public string SemanticsLabel { get; }
+
+public enum LumaFlow.ClipBehavior : System.IComparable, System.IConvertible, System.IFormattable
+  public const LumaFlow.ClipBehavior HardEdge = 1
+  public const LumaFlow.ClipBehavior None = 0
+  public int value__
 
 public sealed class LumaFlow.ColorScheme
   public ColorScheme(UnityEngine.Color canvas, UnityEngine.Color surface, UnityEngine.Color surfaceVariant, UnityEngine.Color primary, UnityEngine.Color primaryContainer, UnityEngine.Color onPrimary, UnityEngine.Color onSurface, UnityEngine.Color onSurfaceVariant, UnityEngine.Color outline)
@@ -320,7 +328,9 @@ public sealed class LumaFlow.ConstrainedBox : LumaFlow.Widget
 
 public sealed class LumaFlow.Container : LumaFlow.Widget
   public Container(LumaFlow.Widget child, LumaFlow.BoxDecoration? decoration = null, LumaFlow.EdgeInsets? padding = null)
+  public Container(LumaFlow.Widget child, LumaFlow.ClipBehavior clipBehavior, LumaFlow.BoxDecoration? decoration = null, LumaFlow.EdgeInsets? padding = null)
   public LumaFlow.BoxDecoration? Decoration { get; }
+  public LumaFlow.ClipBehavior ClipBehavior { get; }
   public LumaFlow.EdgeInsets? Padding { get; }
   public LumaFlow.Widget Child { get; }
 
@@ -567,6 +577,15 @@ public struct LumaFlow.LayoutConstraints : System.IEquatable<LumaFlow.LayoutCons
   public override bool Equals(object obj)
   public override int GetHashCode()
   public virtual bool Equals(LumaFlow.LayoutConstraints other)
+
+public struct LumaFlow.LinearGradient : System.IEquatable<LumaFlow.LinearGradient>
+  public LinearGradient(UnityEngine.Color startColor, UnityEngine.Color endColor, float angle = 0f)
+  public UnityEngine.Color EndColor { get; }
+  public UnityEngine.Color StartColor { get; }
+  public float Angle { get; }
+  public override bool Equals(object obj)
+  public override int GetHashCode()
+  public virtual bool Equals(LumaFlow.LinearGradient other)
 
 public sealed class LumaFlow.LinearProgressIndicator : LumaFlow.Widget
   public LinearProgressIndicator(LumaFlow.State<float> value, LumaFlow.LinearProgressIndicatorStyle style = null, string semanticsLabel = null)

@@ -21,6 +21,9 @@ namespace LumaFlow {
         private static void ApplyContainer(VisualElement element, Container widget) {
             BoxDecorationStyleMapper.Clear(element);
             PaddingStyleMapper.Clear(element);
+            element.style.overflow = widget.ClipBehavior == ClipBehavior.HardEdge
+                ? Overflow.Hidden
+                : StyleKeyword.Null;
             if (widget.Decoration is { } decoration) BoxDecorationStyleMapper.Apply(element, decoration);
             if (widget.Padding is { } padding) PaddingStyleMapper.Apply(element, padding);
         }
