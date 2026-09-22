@@ -67,8 +67,16 @@ using LumaFlow;
 using LumaFlow.Editor;
 
 internal static class DashboardPreviews {
-    [LumaPreview("Dashboard / Default")]
+    [LumaPreview(
+        "Dashboard / Default",
+        Width = 390,
+        Height = 844,
+        Locale = "ru-RU",
+        TextScale = 1.15f)]
     private static Widget Default() => new DashboardScreen();
+
+    [LumaPreview("Dashboard / Loading", Width = 390, Height = 844)]
+    private static Widget Loading() => new DashboardScreen(isLoading: true);
 }
 ```
 
@@ -79,6 +87,16 @@ method again and regenerates the same UXML path, so the edit-mode Game View
 keeps its reference. The method and its containing class may be non-public.
 Keep preview methods in an Editor assembly because `LumaPreviewAttribute` is an
 editor-only API and is not included in player builds.
+
+Use `Screen / Scenario` names to keep related states together in the selector.
+`Width` and `Height` must either both be positive or both be omitted. Omitted
+dimensions follow the main Game View. `Locale` accepts values such as `en`,
+`ru-RU` and `zh-Hans-CN`; `TextScale` defaults to `1`. These settings wrap only
+the preview subtree with the existing `MediaQuery`, `Localizations` and
+`TextScale` widgets. A preview that needs strongly typed localization resources
+should still create its normal inner `Localizations` widget. Likewise, select a
+theme by returning the screen below the ordinary LumaFlow `Theme` widget—the
+preview system does not introduce a second theme format.
 
 Use a code preview for fixed states that are naturally expressed in C#. Use a
 `UxmlPreviewDefinition` asset when designers need serialized controls in the
@@ -92,6 +110,8 @@ CreateWidget()`. Use serialized fields for preview data. Existing stateless
 widgets can be returned directly. Factories must be deterministic and safe to
 run outside Play Mode: avoid scene mutations, network calls and runtime services.
 Factory and widget initialization code executes during generation.
+Asset-backed factories expose the same preview width, height, locale and text
+scale as serialized Inspector fields. Zero width and height follow Game View.
 
 ## Current boundary
 

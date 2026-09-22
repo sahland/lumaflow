@@ -66,6 +66,11 @@ namespace LumaFlow.Editor {
             var codeChoices = new List<string> { "None (use asset)" };
             codeChoices.AddRange(codeFactories.Select(factory => factory.DisplayName));
             var selectedCodeIndex = Math.Max(0, codeFactories.ToList().FindIndex(factory => factory.Id == _codeFactoryId) + 1);
+            if (selectedCodeIndex > 0) {
+                var previewSize = codeFactories[selectedCodeIndex - 1].ViewportSize;
+                _viewportWidth = Mathf.RoundToInt(previewSize.x);
+                _viewportHeight = Mathf.RoundToInt(previewSize.y);
+            }
             _codeFactoryField = new PopupField<string>("Code preview", codeChoices, selectedCodeIndex);
             _codeFactoryField.name = "code-preview";
             _codeFactoryField.RegisterValueChangedCallback(change => {
@@ -74,6 +79,12 @@ namespace LumaFlow.Editor {
                 if (index >= 0) {
                     _definition = null;
                     field.SetValueWithoutNotify(null);
+                    var previewSize = codeFactories[index].ViewportSize;
+                    _viewportWidth = Mathf.RoundToInt(previewSize.x);
+                    _viewportHeight = Mathf.RoundToInt(previewSize.y);
+                    rootVisualElement.Q<IntegerField>("viewport-width")?.SetValueWithoutNotify(_viewportWidth);
+                    rootVisualElement.Q<IntegerField>("viewport-height")?.SetValueWithoutNotify(_viewportHeight);
+                    ApplyViewport();
                 }
                 RefreshInspector();
                 _outputFolder = null;
@@ -93,6 +104,7 @@ namespace LumaFlow.Editor {
             var presets = new PopupField<string>(new List<string> { "Custom", "Phone 390×844", "Tablet 768×1024", "Desktop 1920×1080" }, 0);
             var width = new IntegerField { name = "viewport-width", value = _viewportWidth, tooltip = "Viewport width (pixels)" };
             var height = new IntegerField { value = _viewportHeight, tooltip = "Viewport height (pixels)" };
+            height.name = "viewport-height";
             width.style.width = 65;
             height.style.width = 65;
             width.RegisterValueChangedCallback(change => { _viewportWidth = Mathf.Clamp(change.newValue, 100, 4096); width.SetValueWithoutNotify(_viewportWidth); ApplyViewport(); });
@@ -280,7 +292,7 @@ namespace LumaFlow.Editor {
                 _runtime.Clear();
                 _generated.Clear();
                 if (_compare) {
-                    var widget = _definition != null ? _definition.CreateWidget() : codeFactory!.CreateWidget();
+                    var widget = _definition != null ? _definition.CreatePreviewWidget() : codeFactory!.CreateWidget();
                     _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime);
                 }
                 tree.CloneTree(_generated);

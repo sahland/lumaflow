@@ -197,8 +197,29 @@ namespace LumaFlow.Editor.Tests {
             }
         }
 
-        [LumaPreview("Tests / Code preview")]
-        private static Widget CreateCodePreview() => new Text("Code preview");
+        [Test]
+        public void CodePreviewAppliesScenarioViewportLocaleAndTextScale() {
+            var factory = LumaPreviewRegistry.Factories.Single(candidate => candidate.DisplayName == "Tests / Code preview");
+            Assert.That(factory.ViewportSize, Is.EqualTo(new Vector2(390f, 844f)));
+
+            var export = UxmlPreviewExporter.Export(factory.CreateWidget(), "Preview.uss", factory.ViewportSize);
+            var xml = XDocument.Parse(export.Uxml);
+            Assert.That(xml.Descendants().Single(element => element.Name.LocalName == "Label").Attribute("text")!.Value,
+                Is.EqualTo("ru-RU / 390x844 / 1.25"));
+            Assert.That(export.Uss, Does.Contain("font-size: 12.5px"));
+            Assert.Throws<ArgumentException>(() => new UxmlPreviewEnvironment(390, 0, null, 1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new UxmlPreviewEnvironment(0, 0, null, 0f));
+        }
+
+        [LumaPreview("Tests / Code preview", Width = 390, Height = 844, Locale = "ru-RU", TextScale = 1.25f)]
+        private static Widget CreateCodePreview() => new EnvironmentProbe();
+
+        private sealed class EnvironmentProbe : StatelessWidget {
+            public override Widget Build(BuildContext context) => new Text(
+                $"{Localizations.LocaleOf(context)} / {context.MediaQuery.Width:0}x{context.MediaQuery.Height:0} / "
+                + context.TextScaler.ScaleFactor.ToString("0.##", CultureInfo.InvariantCulture),
+                new TextStyle(fontSize: 10f));
+        }
 
         private sealed class FailingPreviewDefinition : UxmlPreviewDefinition {
             internal bool Fail { get; set; }
