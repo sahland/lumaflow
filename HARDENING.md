@@ -11,7 +11,7 @@ in every form.
 - [x] Add C# edit-mode preview refreshed after assembly reload.
 - [x] Add gradient backgrounds, clipping and other required styling primitives.
 - [x] Improve relative layout and root size propagation.
-- [ ] Provide native-widget lifecycle hooks and pointer/drag interaction primitives.
+- [x] Provide native-widget lifecycle hooks and pointer/drag interaction primitives.
 - [ ] Improve composition of buttons and discrete/custom sliders.
 - [ ] Add direct style animations and measure their cost.
 - [ ] Split subsystem tests and cover consumer regressions.
@@ -69,5 +69,13 @@ The mount lifecycle now observes root geometry and updates its inherited
 `MediaQueryData` after panel resizes, while nested explicit `MediaQuery` scopes
 remain isolated. `FractionallySizedBox` provides native percentage sizing and
 alignment inside finite parent bounds without application-side pixel math.
+
+## Native and pointer interop
+
+`Native` now exposes balanced lifecycle hooks for third-party UI Toolkit
+elements, including rollback cleanup when mounting fails. `PointerRegion`
+provides raw pointer snapshots plus captured drag start/update/end phases with
+thresholding and cancellation on capture loss, disable, and unmount. Runtime
+tests cover callback order, rollback, drag deltas, and lifecycle cancellation.
 
 Do not mark runtime or release items complete based only on static inspection.

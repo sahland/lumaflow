@@ -377,6 +377,13 @@ public sealed class LumaFlow.Dialog : LumaFlow.Widget
   public LumaFlow.Widget Title { get; }
   public System.Collections.Generic.IReadOnlyList<LumaFlow.Widget> Actions { get; }
 
+public struct LumaFlow.DragEventDetails
+  public DragEventDetails(LumaFlow.PointerEventDetails pointer, UnityEngine.Vector2 delta, UnityEngine.Vector2 totalDelta, bool cancelled = false)
+  public LumaFlow.PointerEventDetails Pointer { get; }
+  public UnityEngine.Vector2 Delta { get; }
+  public UnityEngine.Vector2 TotalDelta { get; }
+  public bool Cancelled { get; }
+
 public enum LumaFlow.DrawerPlacement : System.IComparable, System.IConvertible, System.IFormattable
   public const LumaFlow.DrawerPlacement Left = 0
   public const LumaFlow.DrawerPlacement Right = 1
@@ -833,7 +840,9 @@ public sealed class LumaFlow.MountHandle : System.IDisposable
 
 public sealed class LumaFlow.Native : LumaFlow.Widget
   public Native(System.Func<UnityEngine.UIElements.VisualElement> factory)
+  public Native(System.Func<UnityEngine.UIElements.VisualElement> factory, System.Action<UnityEngine.UIElements.VisualElement> onMounted = null, System.Action<UnityEngine.UIElements.VisualElement> onUpdated = null, System.Action<UnityEngine.UIElements.VisualElement> onUnmounted = null)
   public Native(UnityEngine.UIElements.VisualElement element)
+  public Native(UnityEngine.UIElements.VisualElement element, System.Action<UnityEngine.UIElements.VisualElement> onMounted = null, System.Action<UnityEngine.UIElements.VisualElement> onUpdated = null, System.Action<UnityEngine.UIElements.VisualElement> onUnmounted = null)
 
 public sealed class LumaFlow.NavigationBar : LumaFlow.Widget
   public LumaFlow.State<int> SelectedIndex { get; }
@@ -922,6 +931,20 @@ public sealed class LumaFlow.PointerCursor
   public PointerCursor(UnityEngine.Texture2D texture, UnityEngine.Vector2 hotspot = null)
   public UnityEngine.Texture2D Texture { get; }
   public UnityEngine.Vector2 Hotspot { get; }
+
+public struct LumaFlow.PointerEventDetails
+  public PointerEventDetails(int pointerId, UnityEngine.Vector2 position, UnityEngine.Vector2 localPosition, int button)
+  public UnityEngine.Vector2 LocalPosition { get; }
+  public UnityEngine.Vector2 Position { get; }
+  public int Button { get; }
+  public int PointerId { get; }
+
+public sealed class LumaFlow.PointerRegion : LumaFlow.Widget
+  public LumaFlow.Widget Child { get; }
+  public PointerRegion(LumaFlow.Widget child, System.Action<LumaFlow.PointerEventDetails> onPointerDown = null, System.Action<LumaFlow.PointerEventDetails> onPointerMove = null, System.Action<LumaFlow.PointerEventDetails> onPointerUp = null, System.Action<LumaFlow.PointerEventDetails> onPointerCancel = null, System.Action<LumaFlow.DragEventDetails> onDragStart = null, System.Action<LumaFlow.DragEventDetails> onDragUpdate = null, System.Action<LumaFlow.DragEventDetails> onDragEnd = null, float dragThreshold = 4f, int dragButton = 0, bool enabled = true)
+  public bool Enabled { get; }
+  public float DragThreshold { get; }
+  public int DragButton { get; }
 
 public enum LumaFlow.PopoverPlacement : System.IComparable, System.IConvertible, System.IFormattable
   public const LumaFlow.PopoverPlacement Auto = 12

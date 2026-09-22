@@ -535,6 +535,95 @@ namespace LumaFlow.Runtime.Tests {
         }
 
         [Test]
+        public void Native_LifecycleHooksFollowMountUpdateAndUnmount() {
+            var calls = new List<string>();
+            var element = new VisualElement();
+            var node = (NativeNode)new Native(
+                element,
+                onMounted: mounted => calls.Add($"mount:{mounted == element}"),
+                onUnmounted: _ => calls.Add("stale-unmount")).CreateNode();
+            node.Mount(parent: null, new BuildContext(), new VisualElement());
+
+            Assert.That(node.TryUpdate(new Native(
+                element,
+                onMounted: null,
+                onUpdated: updated => calls.Add($"update:{updated == element}"),
+                onUnmounted: unmounted => calls.Add($"unmount:{unmounted == element}"))), Is.True);
+            node.Unmount();
+
+            Assert.That(calls, Is.EqualTo(new[] { "mount:True", "update:True", "unmount:True" }));
+        }
+
+        [Test]
+        public void Native_FailedMountRunsUnmountHookAndDetachesElement() {
+            var root = new VisualElement();
+            var element = new VisualElement();
+            var unmountCount = 0;
+
+            Assert.Throws<InvalidOperationException>(() => Framework.Mount(
+                new Native(
+                    element,
+                    onMounted: _ => throw new InvalidOperationException("mount failed"),
+                    onUnmounted: _ => unmountCount++),
+                root));
+
+            Assert.That(unmountCount, Is.EqualTo(1));
+            Assert.That(element.parent, Is.Null);
+            Assert.That(root.childCount, Is.Zero);
+        }
+
+        [Test]
+        public void PointerRegion_RecognizesDragAfterThresholdAndReportsStableDeltas() {
+            var starts = new List<DragEventDetails>();
+            var updates = new List<DragEventDetails>();
+            var ends = new List<DragEventDetails>();
+            var node = (PointerRegionNode)new PointerRegion(
+                new Text("Drag"),
+                onDragStart: starts.Add,
+                onDragUpdate: updates.Add,
+                onDragEnd: ends.Add,
+                dragThreshold: 4f).CreateNode();
+            node.Mount(parent: null, new BuildContext(), new VisualElement());
+
+            node.HandlePointerDown(new PointerEventDetails(7, Vector2.zero, Vector2.zero, 0));
+            node.HandlePointerMove(new PointerEventDetails(7, new Vector2(3f, 0f), new Vector2(3f, 0f), 0));
+            Assert.That(starts, Is.Empty);
+            node.HandlePointerMove(new PointerEventDetails(7, new Vector2(5f, 0f), new Vector2(5f, 0f), 0));
+            node.HandlePointerMove(new PointerEventDetails(7, new Vector2(8f, 1f), new Vector2(8f, 1f), 0));
+            node.HandlePointerUp(new PointerEventDetails(7, new Vector2(10f, 1f), new Vector2(10f, 1f), 0));
+
+            Assert.That(starts, Has.Count.EqualTo(1));
+            Assert.That(starts[0].TotalDelta, Is.EqualTo(new Vector2(5f, 0f)));
+            Assert.That(updates, Has.Count.EqualTo(2));
+            Assert.That(updates[0].Delta, Is.EqualTo(new Vector2(2f, 0f)));
+            Assert.That(updates[1].Delta, Is.EqualTo(new Vector2(3f, 1f)));
+            Assert.That(ends, Has.Count.EqualTo(1));
+            Assert.That(ends[0].Delta, Is.EqualTo(new Vector2(2f, 0f)));
+            Assert.That(ends[0].TotalDelta, Is.EqualTo(new Vector2(10f, 1f)));
+            Assert.That(ends[0].Cancelled, Is.False);
+
+            node.Unmount();
+        }
+
+        [Test]
+        public void PointerRegion_UnmountCancelsOnlyTheActiveDrag() {
+            var ends = new List<DragEventDetails>();
+            var node = (PointerRegionNode)new PointerRegion(
+                new Text("Drag"),
+                onDragUpdate: _ => { },
+                onDragEnd: ends.Add,
+                dragThreshold: 1f).CreateNode();
+            node.Mount(parent: null, new BuildContext(), new VisualElement());
+            node.HandlePointerDown(new PointerEventDetails(3, Vector2.zero, Vector2.zero, 0));
+            node.HandlePointerMove(new PointerEventDetails(3, new Vector2(2f, 0f), new Vector2(2f, 0f), 0));
+
+            node.Unmount();
+
+            Assert.That(ends, Has.Count.EqualTo(1));
+            Assert.That(ends[0].Cancelled, Is.True);
+        }
+
+        [Test]
         public void State_NotifiesOnlyWhenItsValueChanges() {
             var state = new State<int>(1);
             var notificationCount = 0;
