@@ -159,7 +159,7 @@ On Windows, run the reproducible harness from the development root:
 
 It requires a .NET SDK and the development project's cached NUnit assembly,
 compiles the current runtime and preview sources, and writes results into a new
-isolated project. Existing output directories are never overwritten. Twelve
+isolated project. Existing output directories are never overwritten. Thirteen
 regression methods and the imported layout comparison passed on Unity 6000.4.5f1.
 Game View presentation after assembly reload remains an interactive Editor check;
 the generated asset identity and regeneration path are automated tests.

@@ -497,6 +497,13 @@ public enum LumaFlow.FormValidationMode : System.IComparable, System.IConvertibl
   public const LumaFlow.FormValidationMode OnSubmit = 0
   public int value__
 
+public sealed class LumaFlow.FractionallySizedBox : LumaFlow.Widget
+  public FractionallySizedBox(LumaFlow.Widget child, float? widthFactor = null, float? heightFactor = null, LumaFlow.Alignment alignment = LumaFlow.Alignment.Center)
+  public LumaFlow.Alignment Alignment { get; }
+  public LumaFlow.Widget Child { get; }
+  public float? HeightFactor { get; }
+  public float? WidthFactor { get; }
+
 public sealed class LumaFlow.Icon : LumaFlow.Widget
   public Icon(LumaFlow.IconData data, float? size = null, UnityEngine.Color? color = null)
   public LumaFlow.IconData Data { get; }

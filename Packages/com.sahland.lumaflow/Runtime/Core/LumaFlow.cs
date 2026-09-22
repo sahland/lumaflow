@@ -45,7 +45,7 @@ namespace LumaFlow {
                     semantics: semantics);
                 rootNode.Mount(parent: null, context, host);
                 root.Add(host);
-                return new MountHandle(rootNode, host, semantics, context);
+                return new MountHandle(rootNode, host, root, semantics, context);
             } catch (Exception mountFailure) {
                 Exception? cleanupFailure = null;
                 try {

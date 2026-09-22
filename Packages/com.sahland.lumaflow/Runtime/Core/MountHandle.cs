@@ -11,15 +11,23 @@ namespace LumaFlow {
     public sealed class MountHandle : IDisposable {
         private WidgetNode? _rootNode;
         private VisualElement? _host;
+        private VisualElement? _root;
         private SemanticsOwner? _semantics;
         private BuildContext? _context;
         private readonly int _diagnosticId;
 
-        internal MountHandle(WidgetNode rootNode, VisualElement host, SemanticsOwner semantics, BuildContext context) {
+        internal MountHandle(
+            WidgetNode rootNode,
+            VisualElement host,
+            VisualElement root,
+            SemanticsOwner semantics,
+            BuildContext context) {
             _rootNode = rootNode;
             _host = host;
+            _root = root;
             _semantics = semantics;
             _context = context;
+            root.RegisterCallback<GeometryChangedEvent>(HandleRootGeometryChanged);
             _diagnosticId = LumaFlowDiagnostics.Register(this);
         }
 
@@ -95,6 +103,9 @@ namespace LumaFlow {
             _rootNode = null;
             var host = _host;
             _host = null;
+            var root = _root;
+            _root = null;
+            root?.UnregisterCallback<GeometryChangedEvent>(HandleRootGeometryChanged);
             var semantics = _semantics;
             _semantics = null;
             _context = null;
@@ -113,6 +124,16 @@ namespace LumaFlow {
                 LumaFlowDiagnostics.Unregister(_diagnosticId);
             }
         }
+
+        private void HandleRootGeometryChanged(GeometryChangedEvent change) {
+            if (change.target != _root || _context is null) return;
+            _context.UpdateMediaQuery(_context.DiagnosticMediaQuery.WithSize(
+                NormalizeDimension(change.newRect.width),
+                NormalizeDimension(change.newRect.height)));
+        }
+
+        private static float NormalizeDimension(float value) =>
+            float.IsNaN(value) || float.IsInfinity(value) || value < 0f ? 0f : value;
     }
 
 }

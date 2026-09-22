@@ -4461,6 +4461,36 @@ namespace LumaFlow.Runtime.Tests {
         }
 
         [Test]
+        public void FractionallySizedBox_MapsFactorsAndAlignmentWithoutPixelCalculations() {
+            var root = new VisualElement();
+            using var mount = Framework.Mount(
+                new FractionallySizedBox(
+                    new Text("Relative"),
+                    widthFactor: 0.5f,
+                    heightFactor: 0.25f,
+                    alignment: Alignment.BottomRight),
+                root);
+            var box = root[0][0];
+            var child = box[0];
+
+            Assert.That(child.style.width.value.unit, Is.EqualTo(LengthUnit.Percent));
+            Assert.That(child.style.width.value.value, Is.EqualTo(50f));
+            Assert.That(child.style.height.value.unit, Is.EqualTo(LengthUnit.Percent));
+            Assert.That(child.style.height.value.value, Is.EqualTo(25f));
+            Assert.That(box.style.justifyContent.value, Is.EqualTo(Justify.FlexEnd));
+            Assert.That(box.style.alignItems.value, Is.EqualTo(UnityEngine.UIElements.Align.FlexEnd));
+        }
+
+        [Test]
+        public void FractionallySizedBox_RejectsMissingOrInvalidFactors() {
+            Assert.Throws<ArgumentException>(() => new FractionallySizedBox(new Text("Missing")));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new FractionallySizedBox(new Text("Invalid"), widthFactor: float.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new FractionallySizedBox(new Text("Invalid"), heightFactor: -0.1f));
+        }
+
+        [Test]
         public void ConstrainedBox_AppliesOnlyExplicitNativeConstraints() {
             var root = new VisualElement();
             var constraints = new BoxConstraints(minWidth: 80f, maxWidth: 240f, minHeight: 24f);

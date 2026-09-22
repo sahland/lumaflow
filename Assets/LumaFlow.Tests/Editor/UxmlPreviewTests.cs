@@ -175,6 +175,19 @@ namespace LumaFlow.Editor.Tests {
         }
 
         [Test]
+        public void ExportPreservesFractionalLayoutLengths() {
+            var export = UxmlPreviewExporter.Export(
+                new SizedBox(
+                    new FractionallySizedBox(new Text("Relative"), 0.5f, 0.25f),
+                    width: 400f,
+                    height: 200f),
+                "Preview.uss");
+
+            Assert.That(export.Uss, Does.Contain("width: 50%"));
+            Assert.That(export.Uss, Does.Contain("height: 25%"));
+        }
+
+        [Test]
         public void ExportSupportsCommonControlsWithoutInvokingCallbacks() {
             var callbacks = 0;
             var export = UxmlPreviewExporter.Export(new Column(new Widget[] {

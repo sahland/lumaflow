@@ -18,7 +18,7 @@ previous tree active. See [PlayMode Preview Lifecycle](PlayMode%20Preview.md).
 ## Layout
 
 - Flex: `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`
-- Constraints: `SizedBox`, `ConstrainedBox`, `LayoutBuilder`
+- Constraints: `SizedBox`, `FractionallySizedBox`, `ConstrainedBox`, `LayoutBuilder`
 - Positioning: `Align`, `Center`, `Stack`, `Positioned`
 - Decoration: `Padding`, `Container`, `Card`, `Opacity`
 - Scrolling: `ScrollView`, `ListView<T>`, `ListViewController`

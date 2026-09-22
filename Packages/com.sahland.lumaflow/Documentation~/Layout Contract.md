@@ -22,6 +22,23 @@ axis for its child. `ConstrainedBox` supplies optional min/max bounds. `Align`
 and `Center` position one child inside their wrapper. `Stack` is a relative
 positioning context; use `Positioned` for explicit offsets.
 
+`FractionallySizedBox` sizes its child from the resolved bounds offered by its
+parent and aligns the result without application-side pixel calculations:
+
+```csharp
+new SizedBox(
+    new FractionallySizedBox(
+        content,
+        widthFactor: 0.75f,
+        heightFactor: 0.5f,
+        alignment: Alignment.BottomRight),
+    width: 800f,
+    height: 600f)
+```
+
+Factors use native percentage lengths, may exceed `1` intentionally, and require
+a parent with finite bounds on the corresponding axis.
+
 ## Scrolling and responsive composition
 
 `ScrollView` owns one overflow boundary and one content child. A vertical
@@ -32,3 +49,8 @@ when another ancestor explicitly bounds height.
 width breakpoints; vertical requires an explicitly bounded height. It rebuilds
 only when that observed dimension changes and reconciles a compatible returned
 subtree in place.
+
+The mount root updates `BuildContext.MediaQuery` whenever its UI Toolkit panel
+geometry changes. Widgets that read `context.MediaQuery` therefore rebuild after
+an Editor window, Game View, or runtime panel resize even when they are not below
+`LayoutBuilder`. Explicit nested `MediaQuery` widgets remain isolated overrides.

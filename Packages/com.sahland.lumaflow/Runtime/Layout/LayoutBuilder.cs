@@ -75,7 +75,7 @@ namespace LumaFlow {
 
         protected override void OnInheritedChanged(InheritedAspect aspect) {
             if (aspect == InheritedAspect.MediaQuery) {
-                ReplaceChild(ReadConstraints(), force: true);
+                ReplaceChild(ReadConstraints());
             }
         }
 

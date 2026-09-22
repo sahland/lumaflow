@@ -242,6 +242,46 @@ namespace LumaFlow.Editor.Tests {
         }
 
         [UnityTest]
+        public IEnumerator RootMediaQuery_TracksEditorPanelResizeOutsideLayoutBuilder() {
+            _mount = Framework.Mount(new RootSizeProbe(), _window.rootVisualElement);
+            yield return null;
+            yield return null;
+            var label = _window.rootVisualElement.Q<Label>();
+            var before = label.text;
+
+            var resized = _window.position;
+            resized.width += 90f;
+            resized.height += 60f;
+            _window.position = resized;
+            _window.Repaint();
+            yield return null;
+            yield return null;
+
+            Assert.That(label.text, Is.Not.EqualTo(before));
+            Assert.That(label.text, Is.EqualTo(
+                $"{_window.rootVisualElement.contentRect.width:0} x {_window.rootVisualElement.contentRect.height:0}"));
+        }
+
+        [UnityTest]
+        public IEnumerator FractionallySizedBox_ResolvesAgainstAvailableParentBounds() => VerifyAfterLayout(
+            new SizedBox(
+                new FractionallySizedBox(
+                    new Text("Relative"),
+                    widthFactor: 0.5f,
+                    heightFactor: 0.25f,
+                    alignment: Alignment.BottomRight),
+                width: 300f,
+                height: 200f),
+            box => {
+                var relative = box[0];
+                var child = relative[0];
+                AssertSize(relative, 300f, 200f);
+                AssertSize(child, 150f, 50f);
+                Assert.That(child.worldBound.x - relative.worldBound.x, Is.EqualTo(150f).Within(0.1f));
+                Assert.That(child.worldBound.y - relative.worldBound.y, Is.EqualTo(150f).Within(0.1f));
+            });
+
+        [UnityTest]
         public IEnumerator Text_WrapsInsideItsResolvedAvailableWidth() => VerifyAfterLayout(
             new SizedBox(
                 new Text("Responsive text wraps instead of forcing a horizontal overflow."),
@@ -450,6 +490,11 @@ namespace LumaFlow.Editor.Tests {
         }
 
         private sealed class LayoutTestWindow : EditorWindow {
+        }
+
+        private sealed class RootSizeProbe : StatelessWidget {
+            public override Widget Build(BuildContext context) => new Text(
+                $"{context.MediaQuery.Width:0} x {context.MediaQuery.Height:0}");
         }
     }
 

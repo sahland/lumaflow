@@ -10,7 +10,7 @@ in every form.
 - [ ] Expand CI to minimum/current Unity, clean package installation and builds.
 - [x] Add C# edit-mode preview refreshed after assembly reload.
 - [x] Add gradient backgrounds, clipping and other required styling primitives.
-- [ ] Improve relative layout and root size propagation.
+- [x] Improve relative layout and root size propagation.
 - [ ] Provide native-widget lifecycle hooks and pointer/drag interaction primitives.
 - [ ] Improve composition of buttons and discrete/custom sliders.
 - [ ] Add direct style animations and measure their cost.
@@ -62,5 +62,12 @@ remains a manual Editor check.
 angles. `Container` exposes explicit hard-edge clipping, including rounded-corner
 clipping inherited from its decoration. Gradient textures are immutable, shared
 by value and created once per distinct gradient; widget rebuilds reuse them.
+
+## Responsive root layout
+
+The mount lifecycle now observes root geometry and updates its inherited
+`MediaQueryData` after panel resizes, while nested explicit `MediaQuery` scopes
+remain isolated. `FractionallySizedBox` provides native percentage sizing and
+alignment inside finite parent bounds without application-side pixel math.
 
 Do not mark runtime or release items complete based only on static inspection.
