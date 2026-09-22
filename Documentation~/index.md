@@ -23,10 +23,10 @@
 - [Diagnostics](Diagnostics.md) — mounted-tree snapshots and the Widget
   Inspector.
 - [Play Mode Preview](PlayMode%20Preview.md) — Reassemble and Compile & Restart.
+- [UXML Preview](UXML%20Preview.md) — experimental C# snapshot export and edit-mode preview.
 - [Migration Guide](Migration%20Guide.md) — changes to pre-release APIs.
 - [Compatibility Policy](Compatibility%20Policy.md) — versioning and public API
   guarantees.
 
 The package [README](../README.md) contains requirements, installation
 instructions and a compact feature overview.
-

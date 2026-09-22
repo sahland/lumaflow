@@ -153,7 +153,15 @@ namespace LumaFlow {
         }
 
         private LayoutConstraints ReadConstraints() {
-            return ReadConstraints(Element.contentRect);
+            var constraints = ReadConstraints(Element.contentRect);
+            var mediaQuery = Context.MediaQuery;
+            return ((LayoutBuilder)Widget).Axis == Axis.Horizontal
+                ? new LayoutConstraints(
+                    constraints.MaxWidth > 0f ? constraints.MaxWidth : mediaQuery.Width,
+                    constraints.MaxHeight)
+                : new LayoutConstraints(
+                    constraints.MaxWidth,
+                    constraints.MaxHeight > 0f ? constraints.MaxHeight : mediaQuery.Height);
         }
 
         private static LayoutConstraints ReadConstraints(Rect rect) {
