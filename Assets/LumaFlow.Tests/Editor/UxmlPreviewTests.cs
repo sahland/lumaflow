@@ -38,6 +38,32 @@ namespace LumaFlow.Editor.Tests {
         }
 
         [Test]
+        public void InspectorBindingGeneratesAndAssignsPreviewToDocument() {
+            var rootExisted = AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot);
+            var definitionPath = "Assets/InspectorUxmlPreviewDefinition-" + Guid.NewGuid().ToString("N") + ".asset";
+            var definition = ScriptableObject.CreateInstance<UxmlPreviewDemo>();
+            var panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
+            var gameObject = new GameObject("Preview document");
+            AssetDatabase.CreateAsset(definition, definitionPath);
+            var generatedFolder = "";
+            try {
+                var document = gameObject.AddComponent<UIDocument>();
+                document.panelSettings = panelSettings;
+                var tree = UxmlPreviewDocumentInspector.Bind(definition, new[] { document });
+                generatedFolder = UxmlPreviewGenerator.GetGeneratedFolder(definition);
+                Assert.That(document.visualTreeAsset, Is.SameAs(tree));
+                Assert.That(AssetDatabase.GetAssetPath(tree), Is.EqualTo(generatedFolder + "/Preview.uxml"));
+            } finally {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+                UnityEngine.Object.DestroyImmediate(panelSettings);
+                if (!string.IsNullOrEmpty(generatedFolder)) AssetDatabase.DeleteAsset(generatedFolder);
+                AssetDatabase.DeleteAsset(definitionPath);
+                if (!rootExisted && AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot))
+                    AssetDatabase.DeleteAsset(UxmlPreviewGenerator.GeneratedRoot);
+            }
+        }
+
+        [Test]
         public void FailedRegenerationPreservesTheLastSuccessfulUxml() {
             var rootExisted = AssetDatabase.IsValidFolder(UxmlPreviewGenerator.GeneratedRoot);
             var definitionPath = "Assets/FailingUxmlPreviewDefinition-" + Guid.NewGuid().ToString("N") + ".asset";

@@ -10,9 +10,10 @@ This is an experimental snapshot exporter, not a replacement runtime backend.
 
 1. Create an asset using **Assets > Create > LumaFlow > UXML Preview Demo**.
 2. Add a `UIDocument` to a scene GameObject and assign its Panel Settings.
-3. Open **Tools > LumaFlow > UXML Preview (Experimental)**, select the factory,
-   select the `UIDocument` GameObject in Hierarchy, then click
-   **Bind selected UIDocument** once.
+3. Select the `UIDocument` component in the Inspector. In its **LumaFlow
+   Preview** row, choose an asset or `[LumaPreview]` code factory. LumaFlow
+   generates and binds the UXML immediately. Use **Regenerate** there whenever
+   you want a manual refresh.
 4. Close the preview window if you want. Keep Game View open outside Play Mode.
 5. Edit the C# widget factory. After Unity recompiles the assembly, LumaFlow
    regenerates the same UXML/USS assets. The `UIDocument` keeps its stable asset
@@ -34,8 +35,10 @@ open Game View with the failing factory and concise reason; a later successful
 generation clears that factory's notification. Full exception details remain in
 the Console.
 
-You can skip the binding button and assign the generated `Preview.uxml` directly
-to a UIDocument's Source Asset. The result is the same.
+The Inspector control supports multi-object selection and uses Undo. It only
+assigns `UIDocument.visualTreeAsset`; every selected document must already have
+Panel Settings. You can also assign the generated `Preview.uxml` directly to a
+UIDocument's Source Asset. The result is the same.
 
 ## Optional authoring window
 
@@ -54,9 +57,9 @@ size of the optional authoring window.
 **Open UXML**, **Open USS** and **Show generated files** provide direct access to
 the output. **New demo** creates and selects a factory without leaving the window.
 Unchanged files are not rewritten. Edit the factory rather than these files.
-Binding uses Undo and only assigns `UIDocument.visualTreeAsset`; it does not
-create or save scene objects. The selected document must already have Panel
-Settings. Generated assets remain stable across regeneration.
+The window's **Bind selected UIDocument** button remains available for the same
+operation. Binding does not create or save scene objects. Generated assets
+remain stable across regeneration.
 
 ## Your own factory
 
@@ -155,7 +158,7 @@ On Windows, run the reproducible harness from the development root:
 
 It requires a .NET SDK and the development project's cached NUnit assembly,
 compiles the current runtime and preview sources, and writes results into a new
-isolated project. Existing output directories are never overwritten. Four
+isolated project. Existing output directories are never overwritten. Twelve
 regression methods and the imported layout comparison passed on Unity 6000.4.5f1.
 Game View presentation after assembly reload remains an interactive Editor check;
 the generated asset identity and regeneration path are automated tests.
