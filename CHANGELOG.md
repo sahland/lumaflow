@@ -6,6 +6,10 @@ All notable changes to LumaFlow are documented in this file.
 
 ### Added
 
+- Balanced mount/update/unmount hooks for borrowed and factory-backed `Native`
+  elements.
+- `PointerRegion` with pooled-event-safe pointer details, pointer capture, drag
+  thresholds, deltas, and lifecycle-safe cancellation.
 - Cached two-color linear gradients for `BoxDecoration`.
 - Explicit rounded-content clipping through `Container` and `ClipBehavior`.
 - Root `MediaQuery` propagation after UI Toolkit panel resize.

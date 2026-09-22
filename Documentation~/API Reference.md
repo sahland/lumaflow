@@ -168,6 +168,27 @@ disabled transitions while reconciling compatible nested state. An optional
 `PointerCursor` applies a Unity custom cursor texture and hotspot. UI Toolkit
 does not expose a portable public system-hand cursor identifier.
 
+`PointerRegion` adds raw pointer callbacks and drag recognition without button
+semantics or visual chrome. It captures only the pointer that starts a drag,
+waits for `dragThreshold`, and reports both frame-local `Delta` and
+gesture-wide `TotalDelta`. `OnDragEnd` receives `Cancelled = true` if capture is
+lost, the region is disabled, or its node is unmounted. Event details are value
+snapshots and remain safe after UI Toolkit releases its pooled event.
+
+```csharp
+new PointerRegion(
+    child: new Container(child: new Text("Drag me")),
+    onDragUpdate: details => position += details.Delta,
+    onDragEnd: details => SavePosition(position),
+    dragThreshold: 3f);
+```
+
+`Native` accepts optional `onMounted`, `onUpdated`, and `onUnmounted` hooks for
+bridging third-party `VisualElement` APIs. Hooks run while the element is still
+attached. Compatible declarative updates retain the element, invoke the newest
+`onUpdated`, and use the newest `onUnmounted` callback during cleanup. A failed
+`onMounted` is rolled back and still invokes `onUnmounted` exactly once.
+
 ## Navigation and overlays
 
 - `Navigator`, `NavigatorHost`, `Route`, `RouteTransition`,

@@ -250,19 +250,53 @@ namespace LumaFlow {
         private readonly UnityEngine.UIElements.VisualElement? _existingElement;
         private readonly System.Func<UnityEngine.UIElements.VisualElement>? _factory;
 
+        internal System.Action<UnityEngine.UIElements.VisualElement>? OnMounted { get; }
+        internal System.Action<UnityEngine.UIElements.VisualElement>? OnUpdated { get; }
+        internal System.Action<UnityEngine.UIElements.VisualElement>? OnUnmounted { get; }
+
         /// <summary>
         /// Creates a widget that borrows <paramref name="element" /> for one active mount.
         /// The element must be detached before mounting.
         /// </summary>
-        public Native(UnityEngine.UIElements.VisualElement element) {
+        public Native(UnityEngine.UIElements.VisualElement element)
+            : this(element, null, null, null) {
+        }
+
+        /// <summary>
+        /// Borrows <paramref name="element" /> and invokes lifecycle hooks while it is
+        /// attached to the LumaFlow tree.
+        /// </summary>
+        public Native(
+            UnityEngine.UIElements.VisualElement element,
+            System.Action<UnityEngine.UIElements.VisualElement>? onMounted = null,
+            System.Action<UnityEngine.UIElements.VisualElement>? onUpdated = null,
+            System.Action<UnityEngine.UIElements.VisualElement>? onUnmounted = null) {
             _existingElement = element ?? throw new System.ArgumentNullException(nameof(element));
+            OnMounted = onMounted;
+            OnUpdated = onUpdated;
+            OnUnmounted = onUnmounted;
         }
 
         /// <summary>
         /// Creates a widget whose factory supplies one detached element per mount.
         /// </summary>
-        public Native(System.Func<UnityEngine.UIElements.VisualElement> factory) {
+        public Native(System.Func<UnityEngine.UIElements.VisualElement> factory)
+            : this(factory, null, null, null) {
+        }
+
+        /// <summary>
+        /// Creates one detached element per mount and invokes lifecycle hooks while
+        /// that element is attached to the LumaFlow tree.
+        /// </summary>
+        public Native(
+            System.Func<UnityEngine.UIElements.VisualElement> factory,
+            System.Action<UnityEngine.UIElements.VisualElement>? onMounted = null,
+            System.Action<UnityEngine.UIElements.VisualElement>? onUpdated = null,
+            System.Action<UnityEngine.UIElements.VisualElement>? onUnmounted = null) {
             _factory = factory ?? throw new System.ArgumentNullException(nameof(factory));
+            OnMounted = onMounted;
+            OnUpdated = onUpdated;
+            OnUnmounted = onUnmounted;
         }
 
         internal override WidgetNode CreateNode() {
@@ -294,6 +328,8 @@ namespace LumaFlow {
     }
 
     internal sealed class NativeNode : WidgetNode {
+        private System.Action<UnityEngine.UIElements.VisualElement>? _onUnmounted;
+
         public NativeNode(Native widget)
             : base(widget) {
         }
@@ -302,11 +338,26 @@ namespace LumaFlow {
             return ((Native)Widget).CreateElementForMount();
         }
 
+        protected override void OnMounted() {
+            var native = (Native)Widget;
+            _onUnmounted = native.OnUnmounted;
+            Bindings.Add(InvokeUnmounted);
+            native.OnMounted?.Invoke(Element);
+        }
+
         internal override bool TryUpdate(Widget nextWidget) {
             if (!CanUpdateWith(nextWidget) || nextWidget is not Native native) return false;
             if (!((Native)Widget).CanRetainElementFor(native)) return false;
             UpdateWidget(native);
+            _onUnmounted = native.OnUnmounted;
+            native.OnUpdated?.Invoke(Element);
             return true;
+        }
+
+        private void InvokeUnmounted() {
+            var callback = _onUnmounted;
+            _onUnmounted = null;
+            callback?.Invoke(Element);
         }
     }
 
