@@ -17,7 +17,7 @@ namespace LumaFlow {
 
         protected override void ApplyConfiguration(Align widget) => ApplyAlignment(Element, widget.Alignment);
 
-        private static void ApplyAlignment(VisualElement element, Alignment alignment) {
+        internal static void ApplyAlignment(VisualElement element, Alignment alignment) {
             switch (alignment) {
                 case Alignment.TopLeft:
                     element.style.justifyContent = Justify.FlexStart;

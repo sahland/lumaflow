@@ -4,6 +4,13 @@ All notable changes to LumaFlow are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Cached two-color linear gradients for `BoxDecoration`.
+- Explicit rounded-content clipping through `Container` and `ClipBehavior`.
+- Root `MediaQuery` propagation after UI Toolkit panel resize.
+- Percentage sizing and alignment through `FractionallySizedBox`.
+
 ## [0.1.1] - 2026-09-07
 
 ### Added

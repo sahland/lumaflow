@@ -5,6 +5,7 @@ namespace LumaFlow {
     internal static class BoxDecorationStyleMapper {
         public static void Clear(VisualElement element) {
             element.style.backgroundColor = StyleKeyword.Null;
+            element.style.backgroundImage = StyleKeyword.Null;
             element.style.borderTopLeftRadius = StyleKeyword.Null;
             element.style.borderTopRightRadius = StyleKeyword.Null;
             element.style.borderBottomRightRadius = StyleKeyword.Null;
@@ -15,6 +16,10 @@ namespace LumaFlow {
         public static void Apply(VisualElement element, BoxDecoration decoration) {
             if (decoration.BackgroundColor is { } backgroundColor) {
                 element.style.backgroundColor = backgroundColor;
+            }
+
+            if (decoration.BackgroundGradient is { } backgroundGradient) {
+                element.style.backgroundImage = new StyleBackground(LinearGradientTextureCache.Get(backgroundGradient));
             }
 
             if (decoration.BorderRadius is { } borderRadius) {

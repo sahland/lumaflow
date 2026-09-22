@@ -18,7 +18,7 @@ previous tree active. See [PlayMode Preview Lifecycle](PlayMode%20Preview.md).
 ## Layout
 
 - Flex: `Row`, `Column`, `Expanded`, `Flexible`, `Spacer`
-- Constraints: `SizedBox`, `ConstrainedBox`, `LayoutBuilder`
+- Constraints: `SizedBox`, `FractionallySizedBox`, `ConstrainedBox`, `LayoutBuilder`
 - Positioning: `Align`, `Center`, `Stack`, `Positioned`
 - Decoration: `Padding`, `Container`, `Card`, `Opacity`
 - Scrolling: `ScrollView`, `ListView<T>`, `ListViewController`
@@ -92,9 +92,26 @@ new Pressable(
 multi-line text uses a scaled line cap and clipping because UI Toolkit does not
 expose a public multi-line ellipsis or line-height primitive.
 
-`Container` and `Card` share `BoxDecoration` for background, radius and typed
-per-side borders. Unity 6.0 UI Toolkit does not expose a public box-shadow
-style, so `BoxShadow` and elevation are not part of the current API.
+`Container` and `Card` share `BoxDecoration` for solid backgrounds, cached
+two-color `LinearGradient` backgrounds, radius and typed per-side borders.
+Use `ClipBehavior.HardEdge` when a `Container` must clip descendants to its
+bounds and rounded corners:
+
+```csharp
+new Container(
+    content,
+    ClipBehavior.HardEdge,
+    new BoxDecoration(
+        new LinearGradient(
+            new Color(1f, 1f, 1f, 0.92f),
+            new Color(1f, 1f, 1f, 0.55f),
+            angle: 90f),
+        borderRadius: BorderRadius.All(24f)));
+```
+
+Equal gradients reuse one small immutable texture instead of allocating during
+widget rebuilds. Unity 6.0 UI Toolkit does not expose a public box-shadow style,
+so `BoxShadow` and elevation are not part of the current API.
 
 `LinearProgressIndicator` accepts either a value or `State<float>` in `0..1`.
 Track color, value color, height, and radius resolve from its explicit
