@@ -47,6 +47,19 @@ namespace LumaFlow {
             Color.LerpUnclamped(begin, end, progress);
     }
 
+    public sealed class Vector2Tween : Tween<Vector2> {
+        public Vector2Tween(Vector2 begin, Vector2 end) : base(Validate(begin, nameof(begin)), Validate(end, nameof(end))) { }
+
+        protected override Vector2 Lerp(Vector2 begin, Vector2 end, float progress) =>
+            Vector2.LerpUnclamped(begin, end, progress);
+
+        private static Vector2 Validate(Vector2 value, string parameterName) =>
+            float.IsNaN(value.x) || float.IsInfinity(value.x)
+                || float.IsNaN(value.y) || float.IsInfinity(value.y)
+                ? throw new ArgumentOutOfRangeException(parameterName, "Vector tween values must be finite.")
+                : value;
+    }
+
     public sealed class EdgeInsetsTween : Tween<EdgeInsets> {
         public EdgeInsetsTween(EdgeInsets begin, EdgeInsets end) : base(begin, end) { }
 

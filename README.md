@@ -123,8 +123,10 @@ Keep controllers outside `Build` so their lifetime matches the mounted host.
 
 ## Animation
 
-`TweenAnimationBuilder<T>` and `AnimatedOpacity` provide implicit animations.
-Compatible updates retarget a running animation from its displayed value.
+`TweenAnimationBuilder<T>`, `AnimatedOpacity`, and `AnimatedStyle<T>` provide
+implicit animations. Use `AnimatedStyle<T>` for per-frame native style changes
+that should not rebuild their child widget tree. Compatible updates retarget a
+running animation from its displayed value.
 `MediaQueryData.DisableAnimations` supplies the reduced-motion policy for a
 subtree.
 

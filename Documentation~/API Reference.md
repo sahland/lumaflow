@@ -47,9 +47,11 @@ alignment; use `Center` for the centered case.
 
 ## Controls and forms
 
-- `Text`, `Icon`, `IconButton`, `Button`, `Pressable`, `AsyncButton`
+- `Text`, `Icon`, `IconButton`, `Button`, `ButtonContent`, `Pressable`,
+  `PointerRegion`, `AsyncButton`
 - Application media: `Image`, `ImageFit`, `CircleAvatar`
-- `TextField`, `Checkbox`, `Radio<T>`, `Switch`, `Slider`, `Dropdown<T>`,
+- `TextField`, `Checkbox`, `Radio<T>`, `Switch`, `Slider`,
+  `DiscreteSlider<T>`, `Dropdown<T>`,
   `LinearProgressIndicator`, `TabBar<T>`, `TabItem<T>`, `TabView<T>`,
   `SegmentedControl<T>`, `SegmentedControlItem<T>`
 - `Form`, `FormState`, `FormField<T>`, `FocusNode`, `FocusTraversalGroup`
@@ -205,7 +207,10 @@ See [Navigation and Overlays](Navigation%20and%20Overlays.md).
 - `Tween<T>`, `FloatTween`, `ColorTween`, `EdgeInsetsTween`,
   `BorderRadiusTween`
 - `AnimationSpec`, `AnimationBehavior`
-- `TweenAnimationBuilder<T>`, `AnimatedOpacity`
+- `TweenAnimationBuilder<T>`, `AnimatedOpacity`, `AnimatedStyle<T>`
+- `AnimatedStyleProperties`, `StyleValueApplier<T>`
+- `FloatTween`, `Vector2Tween`, `ColorTween`, `EdgeInsetsTween`,
+  `BorderRadiusTween`
 
 See [Animations](Animations.md).
 

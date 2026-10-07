@@ -57,6 +57,33 @@ The initial native opacity equals the state's current value and is not replayed
 as an entrance animation. Later state changes use the same driver and
 retargeting rules as `TweenAnimationBuilder<T>`.
 
+## Direct style animation
+
+`AnimatedStyle<T>` applies each sampled value to one retained UI Toolkit
+wrapper. Its child stays mounted and is not reconciled on animation frames, so
+it is the preferred boundary for frequently changing visual styles:
+
+```csharp
+new AnimatedStyle<Vector2>(
+    card,
+    new Vector2Tween(Vector2.zero, new Vector2(12f, 0f)),
+    TimeSpan.FromMilliseconds(160),
+    AnimatedStyleProperties.Translation,
+    curve: Curves.EaseOut);
+```
+
+Built-in allocation-free appliers cover opacity, background color, width,
+height, translation, scale, rotation, and border radius. A custom
+`StyleValueApplier<T>` can update another native style property. Keep the
+applier free of allocations and restrict it to the supplied wrapper element;
+use `TweenAnimationBuilder<T>` when the animated value must change widget
+structure or content.
+
+The first mount animates from `Tween.Begin` to `Tween.End`. Compatible updates
+retarget from the currently displayed value, regardless of the new tween's
+begin value. The performance suite measures 16 direct style boundaries across
+60 frames alongside the equivalent builder benchmark.
+
 ## Reduced motion
 
 Reduced motion is a tree-scoped application policy:
@@ -93,4 +120,4 @@ Every LumaFlow animation establishes its initial value immediately and cancels
 its scheduled item on retarget, route deactivation, or unmount.
 
 The current API does not include explicit controllers, animation graphs,
-physics-based animation, shared-element transitions or general transforms.
+physics-based animation, or shared-element transitions.

@@ -34,6 +34,51 @@ Use `IconButton` for icon-only actions and `Pressable` when a custom surface
 needs pointer, keyboard, focus and button semantics without native button
 painting.
 
+For the common leading-label-trailing layout, `ButtonContent` keeps the label
+left-aligned, gives it the remaining width, and applies single-line ellipsis.
+It is useful for navigation rows whose icon and optional indicator must not
+change the button height:
+
+```csharp
+new Button(
+    new ButtonContent(
+        "Open project",
+        leading: new Icon(LumaIcons.Folder, size: 24f),
+        trailing: new Icon(LumaIcons.ChevronRight),
+        gap: 12f),
+    OpenProject,
+    semanticsLabel: "Open project");
+```
+
+## Discrete and custom sliders
+
+`DiscreteSlider<T>` controls a typed value from an ordered set. Its markers,
+track, and thumb are ordinary widgets, so application UI kits keep complete
+control over their visuals without dropping down to a custom `VisualElement`.
+Dragging is continuous between stops, magnetizes inside `snapThreshold`, and
+commits only typed item values. Arrow keys, focus, semantics, pointer capture,
+insets, and interaction callbacks are handled by the control.
+
+```csharp
+var time = new State<string>("12:00");
+var stops = new[] {
+    new DiscreteSliderItem<string>("03:00", selected => BuildTimeStop("03:00", selected), "03:00"),
+    new DiscreteSliderItem<string>("12:00", selected => BuildTimeStop("12:00", selected), "12:00"),
+    new DiscreteSliderItem<string>("23:00", selected => BuildTimeStop("23:00", selected), "23:00")
+};
+
+new DiscreteSlider<string>(
+    time,
+    stops,
+    thumbBuilder: (value, states) => BuildSunThumb((states & WidgetStates.Dragged) != 0),
+    track: BuildTimeTrack(),
+    height: 128f,
+    startInset: 40f,
+    endInset: 40f,
+    snapThreshold: 0.03f,
+    onChanged: ApplyTimeOfDay);
+```
+
 ## Tabs
 
 `TabBar<T>` selects a typed value held by `State<T>`. `TabView<T>` observes
@@ -125,4 +170,3 @@ new TooltipAnchor(
 The anchor closes its overlay on pointer leave, focus loss, controller changes
 and unmount. `ModalOptions` configures barrier dismissal, back dismissal,
 focus and barrier color.
-
