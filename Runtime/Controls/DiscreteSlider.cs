@@ -179,13 +179,17 @@ namespace LumaFlow {
         internal override bool TryUpdate(Widget nextWidget) {
             if (!CanUpdateWith(nextWidget) || nextWidget is not DiscreteSlider<T> slider) return false;
             var previous = Slider;
-            ResetInteraction();
+            var preserveInteraction = _isInteracting
+                && slider.Enabled
+                && ReferenceEquals(previous.Value, slider.Value)
+                && HaveSameItemValues(previous.Items, slider.Items);
+            if (!preserveInteraction) ResetInteraction();
             if (!ReferenceEquals(previous.Value, slider.Value)) ReleaseValueBinding();
             if (!ReferenceEquals(previous.FocusNode, slider.FocusNode)) ReleaseFocusBinding();
             UpdateWidget(slider);
             Element.SetEnabled(slider.Enabled);
             Element.style.height = slider.Height;
-            _displayPosition = PositionForValue(slider.Value.Value);
+            if (!preserveInteraction) _displayPosition = PositionForValue(slider.Value.Value);
             if (!ReferenceEquals(previous.Value, slider.Value)) BindValue(slider);
             if (!ReferenceEquals(previous.FocusNode, slider.FocusNode)) BindFocus(slider);
             RefreshVisuals();
@@ -383,6 +387,17 @@ namespace LumaFlow {
         }
 
         private float PositionForIndex(int index) => index / (float)(Slider.Items.Count - 1);
+
+        private static bool HaveSameItemValues(
+            IReadOnlyList<DiscreteSliderItem<T>> previous,
+            IReadOnlyList<DiscreteSliderItem<T>> next) {
+            if (previous.Count != next.Count) return false;
+            var comparer = EqualityComparer<T>.Default;
+            for (var index = 0; index < previous.Count; index++) {
+                if (!comparer.Equals(previous[index].Value, next[index].Value)) return false;
+            }
+            return true;
+        }
 
         private void BindValue(DiscreteSlider<T> slider) => _valueSubscription = slider.Value.Subscribe(UpdateValue);
 
