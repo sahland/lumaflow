@@ -13,6 +13,8 @@ All notable changes to LumaFlow are documented in this file.
 - `ButtonContent` for consistent leading-label-trailing button composition.
 - Typed `DiscreteSlider<T>` with declarative marker, track, and thumb content,
   continuous dragging, snapping, focus, keyboard, and semantics support.
+- `AnimatedStyle<T>` for direct native style transitions without per-frame
+  child reconciliation, plus common style appliers and `Vector2Tween`.
 - Cached two-color linear gradients for `BoxDecoration`.
 - Explicit rounded-content clipping through `Container` and `ClipBehavior`.
 - Root `MediaQuery` propagation after UI Toolkit panel resize.

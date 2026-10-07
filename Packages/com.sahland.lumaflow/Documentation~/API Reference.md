@@ -207,7 +207,10 @@ See [Navigation and Overlays](Navigation%20and%20Overlays.md).
 - `Tween<T>`, `FloatTween`, `ColorTween`, `EdgeInsetsTween`,
   `BorderRadiusTween`
 - `AnimationSpec`, `AnimationBehavior`
-- `TweenAnimationBuilder<T>`, `AnimatedOpacity`
+- `TweenAnimationBuilder<T>`, `AnimatedOpacity`, `AnimatedStyle<T>`
+- `AnimatedStyleProperties`, `StyleValueApplier<T>`
+- `FloatTween`, `Vector2Tween`, `ColorTween`, `EdgeInsetsTween`,
+  `BorderRadiusTween`
 
 See [Animations](Animations.md).
 

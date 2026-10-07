@@ -84,5 +84,53 @@ namespace LumaFlow.Performance.Tests {
                 })
                 .Run();
         }
+
+        [Test, Performance, Version("1")]
+        public void AnimatedStyle_ApplySixteenNativeStylesForSixtyFrames() {
+            VisualElement[] roots = null!;
+            AnimatedStyleNode<float>[] nodes = null!;
+            double[] starts = null!;
+            AnimatedStyle<float>[] widgets = null!;
+
+            Measure.Method(() => {
+                    for (var index = 0; index < BuilderCount; index++) {
+                        nodes[index] = (AnimatedStyleNode<float>)widgets[index].CreateNode();
+                        nodes[index].Mount(null, new BuildContext(), roots[index]);
+                        starts[index] = nodes[index].AnimationStartedAt;
+                    }
+                    for (var frame = 1; frame <= FrameCount; frame++) {
+                        var offset = frame / (double)FrameCount;
+                        for (var index = 0; index < BuilderCount; index++) {
+                            nodes[index].TickAt(starts[index] + offset);
+                        }
+                    }
+                    for (var index = 0; index < BuilderCount; index++) nodes[index].Unmount();
+                })
+                .SampleGroup("Animation.DirectStyle.16MountSchedule60FramesAndUnmount")
+                .WarmupCount(WarmupCount)
+                .MeasurementCount(MeasurementCount)
+                .IterationsPerMeasurement(1)
+                .SetUp(() => {
+                    roots = new VisualElement[BuilderCount];
+                    nodes = new AnimatedStyleNode<float>[BuilderCount];
+                    starts = new double[BuilderCount];
+                    widgets = new AnimatedStyle<float>[BuilderCount];
+                    for (var index = 0; index < BuilderCount; index++) {
+                        roots[index] = new VisualElement();
+                        widgets[index] = new AnimatedStyle<float>(
+                            new Text("Animated"),
+                            new FloatTween(100f, 200f),
+                            TimeSpan.FromSeconds(1),
+                            AnimatedStyleProperties.Width);
+                    }
+                })
+                .CleanUp(() => {
+                    for (var index = 0; index < BuilderCount; index++) {
+                        Assert.That(nodes[index].CurrentValue, Is.EqualTo(200f));
+                        Assert.That(roots[index].childCount, Is.Zero);
+                    }
+                })
+                .Run();
+        }
     }
 }

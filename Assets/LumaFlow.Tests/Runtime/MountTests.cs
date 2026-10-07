@@ -6004,6 +6004,73 @@ namespace LumaFlow.Runtime.Tests {
         }
 
         [Test]
+        public void AnimatedStyle_UpdatesNativeStyleWithoutReplacingItsChild() {
+            var firstChild = new CounterWidget();
+            var root = new VisualElement();
+            var node = (AnimatedStyleNode<float>)new AnimatedStyle<float>(
+                firstChild,
+                new FloatTween(100f, 200f),
+                TimeSpan.FromSeconds(1),
+                AnimatedStyleProperties.Width).CreateNode();
+            node.Mount(parent: null, new BuildContext(), root);
+            var wrapper = root[0];
+            var nativeChild = wrapper[0];
+            var childState = firstChild.MountedState;
+
+            node.TickAt(node.AnimationStartedAt + 0.5d);
+
+            Assert.That(wrapper.style.width.value.value, Is.EqualTo(150f).Within(0.0001f));
+            Assert.That(wrapper[0], Is.SameAs(nativeChild));
+
+            var secondChild = new CounterWidget();
+            Assert.That(node.TryUpdate(new AnimatedStyle<float>(
+                secondChild,
+                new FloatTween(-1000f, 300f),
+                TimeSpan.FromSeconds(1),
+                AnimatedStyleProperties.Width)), Is.True);
+            Assert.That(secondChild.MountedState, Is.SameAs(childState));
+            Assert.That(wrapper[0], Is.SameAs(nativeChild));
+
+            node.TickAt(node.AnimationStartedAt + 0.5d);
+            Assert.That(wrapper.style.width.value.value, Is.EqualTo(225f).Within(0.0001f));
+            node.Unmount();
+        }
+
+        [Test]
+        public void AnimatedStyle_ReducedMotionAppliesEndAndCompletesOnce() {
+            var completed = 0;
+            var root = new VisualElement();
+            var node = (AnimatedStyleNode<Vector2>)new AnimatedStyle<Vector2>(
+                new Text("move"),
+                new Vector2Tween(Vector2.zero, new Vector2(20f, 30f)),
+                TimeSpan.FromSeconds(1),
+                AnimatedStyleProperties.Translation,
+                onEnd: () => completed++).CreateNode();
+
+            node.Mount(
+                parent: null,
+                new BuildContext(mediaQuery: new MediaQueryData(100f, 100f, disableAnimations: true)),
+                root);
+
+            Assert.That(node.CurrentValue, Is.EqualTo(new Vector2(20f, 30f)));
+            Assert.That(node.IsAnimating, Is.False);
+            Assert.That(completed, Is.EqualTo(1));
+            node.Unmount();
+        }
+
+        [Test]
+        public void AnimatedStyle_RejectsInvalidConfiguration() {
+            Assert.Throws<ArgumentNullException>(() => new AnimatedStyle<float>(
+                null!, new FloatTween(0f, 1f), TimeSpan.FromSeconds(1), AnimatedStyleProperties.Opacity));
+            Assert.Throws<ArgumentNullException>(() => new AnimatedStyle<float>(
+                new Text("value"), null!, TimeSpan.FromSeconds(1), AnimatedStyleProperties.Opacity));
+            Assert.Throws<ArgumentNullException>(() => new AnimatedStyle<float>(
+                new Text("value"), new FloatTween(0f, 1f), TimeSpan.FromSeconds(1), null!));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Vector2Tween(
+                new Vector2(float.NaN, 0f), Vector2.one));
+        }
+
+        [Test]
         public void Dialog_ComposesOptionalTitleContentAndActions() {
             var root = new VisualElement();
             using var mount = Framework.Mount(

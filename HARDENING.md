@@ -13,7 +13,7 @@ in every form.
 - [x] Improve relative layout and root size propagation.
 - [x] Provide native-widget lifecycle hooks and pointer/drag interaction primitives.
 - [x] Improve composition of buttons and discrete/custom sliders.
-- [ ] Add direct style animations and measure their cost.
+- [x] Add direct style animations and measure their cost.
 - [ ] Split subsystem tests and cover consumer regressions.
 - [ ] Add a realistic responsive sample and document the authoring workflow.
 
@@ -86,5 +86,17 @@ visuals declarative while owning typed controlled state, pointer capture,
 continuous drag positioning, stop magnetism, keyboard focus, semantics, and
 balanced interaction cleanup. Isolated Unity tests cover insets, free movement,
 snapping, controlled updates, callback ordering, validation, and unmount.
+
+## Direct style animation
+
+`AnimatedStyle<T>` now applies tween samples directly to a retained UI Toolkit
+wrapper without reconciling its child on animation frames. Built-in appliers
+cover common visual properties, and `Vector2Tween` supports translation and
+scale. Runtime coverage verifies retargeting, child identity and reduced-motion
+behavior. The performance suite measures 16 direct style animations over 60
+frames beside the existing subtree-builder benchmark. An isolated Unity
+6000.4.5f1 run measured a 2.416 ms median for the direct path versus 30.487 ms
+for the builder path across the same mount, 60-frame sample, and unmount cycle;
+the figures are local comparative evidence rather than a device-wide budget.
 
 Do not mark runtime or release items complete based only on static inspection.
