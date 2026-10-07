@@ -721,6 +721,46 @@ namespace LumaFlow.Runtime.Tests {
         }
 
         [Test]
+        public void DiscreteSlider_CompatibleRebuildPreservesActiveDragAndUsesLatestCallbacks() {
+            var value = new State<int>(1);
+            var oldChanges = new List<int>();
+            var latestChanges = new List<int>();
+            var latestEnds = new List<int>();
+            var items = new[] {
+                new DiscreteSliderItem<int>(1, "One"),
+                new DiscreteSliderItem<int>(2, "Two"),
+                new DiscreteSliderItem<int>(3, "Three")
+            };
+            var node = (DiscreteSliderNode<int>)new DiscreteSlider<int>(
+                value,
+                items,
+                (selected, _) => new Text(selected.ToString()),
+                onChanged: oldChanges.Add).CreateNode();
+            node.Mount(parent: null, new BuildContext(), new VisualElement());
+            node.SetAvailableWidth(100f);
+
+            Assert.That(node.HandlePointerDown(12, 0f), Is.True);
+            Assert.That(node.TryUpdate(new DiscreteSlider<int>(
+                value,
+                new[] {
+                    new DiscreteSliderItem<int>(1, "First"),
+                    new DiscreteSliderItem<int>(2, "Second"),
+                    new DiscreteSliderItem<int>(3, "Third")
+                },
+                (selected, _) => new Text(selected.ToString()),
+                onChanged: latestChanges.Add,
+                onChangeEnd: latestEnds.Add)), Is.True);
+
+            Assert.That(node.HandlePointerMove(12, 100f), Is.True);
+            Assert.That(value.Value, Is.EqualTo(3));
+            Assert.That(oldChanges, Is.Empty);
+            Assert.That(latestChanges, Is.EqualTo(new[] { 3 }));
+            Assert.That(node.HandlePointerUp(12, 100f), Is.True);
+            Assert.That(latestEnds, Is.EqualTo(new[] { 3 }));
+            node.Unmount();
+        }
+
+        [Test]
         public void DiscreteSlider_RejectsInvalidItemsAndUnmountStopsInteractionSilently() {
             var value = new State<int>(1);
             Assert.Throws<ArgumentException>(() => new DiscreteSlider<int>(
