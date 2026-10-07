@@ -10,6 +10,9 @@ All notable changes to LumaFlow are documented in this file.
   elements.
 - `PointerRegion` with pooled-event-safe pointer details, pointer capture, drag
   thresholds, deltas, and lifecycle-safe cancellation.
+- `ButtonContent` for consistent leading-label-trailing button composition.
+- Typed `DiscreteSlider<T>` with declarative marker, track, and thumb content,
+  continuous dragging, snapping, focus, keyboard, and semantics support.
 - Cached two-color linear gradients for `BoxDecoration`.
 - Explicit rounded-content clipping through `Container` and `ClipBehavior`.
 - Root `MediaQuery` propagation after UI Toolkit panel resize.

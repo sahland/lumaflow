@@ -12,7 +12,7 @@ in every form.
 - [x] Add gradient backgrounds, clipping and other required styling primitives.
 - [x] Improve relative layout and root size propagation.
 - [x] Provide native-widget lifecycle hooks and pointer/drag interaction primitives.
-- [ ] Improve composition of buttons and discrete/custom sliders.
+- [x] Improve composition of buttons and discrete/custom sliders.
 - [ ] Add direct style animations and measure their cost.
 - [ ] Split subsystem tests and cover consumer regressions.
 - [ ] Add a realistic responsive sample and document the authoring workflow.
@@ -77,5 +77,14 @@ elements, including rollback cleanup when mounting fails. `PointerRegion`
 provides raw pointer snapshots plus captured drag start/update/end phases with
 thresholding and cancellation on capture loss, disable, and unmount. Runtime
 tests cover callback order, rollback, drag deltas, and lifecycle cancellation.
+
+## Control composition
+
+`ButtonContent` provides a full-width leading-label-trailing composition with a
+flexible, ellipsized label. `DiscreteSlider<T>` keeps track, marker, and thumb
+visuals declarative while owning typed controlled state, pointer capture,
+continuous drag positioning, stop magnetism, keyboard focus, semantics, and
+balanced interaction cleanup. Isolated Unity tests cover insets, free movement,
+snapping, controlled updates, callback ordering, validation, and unmount.
 
 Do not mark runtime or release items complete based only on static inspection.

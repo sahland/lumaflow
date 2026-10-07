@@ -47,9 +47,11 @@ alignment; use `Center` for the centered case.
 
 ## Controls and forms
 
-- `Text`, `Icon`, `IconButton`, `Button`, `Pressable`, `AsyncButton`
+- `Text`, `Icon`, `IconButton`, `Button`, `ButtonContent`, `Pressable`,
+  `PointerRegion`, `AsyncButton`
 - Application media: `Image`, `ImageFit`, `CircleAvatar`
-- `TextField`, `Checkbox`, `Radio<T>`, `Switch`, `Slider`, `Dropdown<T>`,
+- `TextField`, `Checkbox`, `Radio<T>`, `Switch`, `Slider`,
+  `DiscreteSlider<T>`, `Dropdown<T>`,
   `LinearProgressIndicator`, `TabBar<T>`, `TabItem<T>`, `TabView<T>`,
   `SegmentedControl<T>`, `SegmentedControlItem<T>`
 - `Form`, `FormState`, `FormField<T>`, `FocusNode`, `FocusTraversalGroup`

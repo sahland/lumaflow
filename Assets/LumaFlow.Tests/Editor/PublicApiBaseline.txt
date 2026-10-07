@@ -186,6 +186,16 @@ public sealed class LumaFlow.Button : LumaFlow.Widget
   public string SemanticsLabel { get; }
   public string Text { get; }
 
+public sealed class LumaFlow.ButtonContent : LumaFlow.StatelessWidget
+  public ButtonContent(LumaFlow.Widget label, LumaFlow.Widget leading = null, LumaFlow.Widget trailing = null, float gap = 8f)
+  public ButtonContent(string label, LumaFlow.Widget leading = null, LumaFlow.Widget trailing = null, float gap = 8f, LumaFlow.TextStyle labelStyle = null)
+  public LumaFlow.Widget LabelWidget { get; }
+  public LumaFlow.Widget Leading { get; }
+  public LumaFlow.Widget Trailing { get; }
+  public float Gap { get; }
+  public override LumaFlow.Widget Build(LumaFlow.BuildContext context)
+  public string Label { get; }
+
 public sealed class LumaFlow.ButtonStateStyle
   public ButtonStateStyle(UnityEngine.Color? background = null, UnityEngine.Color? foreground = null, LumaFlow.Border? border = null)
   public LumaFlow.Border? Border { get; }
@@ -376,6 +386,30 @@ public sealed class LumaFlow.Dialog : LumaFlow.Widget
   public LumaFlow.Widget Content { get; }
   public LumaFlow.Widget Title { get; }
   public System.Collections.Generic.IReadOnlyList<LumaFlow.Widget> Actions { get; }
+
+public sealed class LumaFlow.DiscreteSlider<T> : LumaFlow.Widget
+  public DiscreteSlider(LumaFlow.State<T> value, System.Collections.Generic.IReadOnlyList<LumaFlow.DiscreteSliderItem<T>> items, System.Func<T, LumaFlow.WidgetStates, LumaFlow.Widget> thumbBuilder, LumaFlow.Widget track = null, string semanticsLabel = null, bool enabled = true, float height = 48f, float startInset = 0f, float endInset = 0f, float snapThreshold = 0.025f, LumaFlow.FocusNode focusNode = null, System.Action<T> onChanged = null, System.Action<T> onChangeStart = null, System.Action<T> onChangeEnd = null)
+  public LumaFlow.FocusNode FocusNode { get; }
+  public LumaFlow.State<T> Value { get; }
+  public LumaFlow.Widget Track { get; }
+  public System.Action<T> OnChangeEnd { get; }
+  public System.Action<T> OnChangeStart { get; }
+  public System.Action<T> OnChanged { get; }
+  public System.Collections.Generic.IReadOnlyList<LumaFlow.DiscreteSliderItem<T>> Items { get; }
+  public System.Func<T, LumaFlow.WidgetStates, LumaFlow.Widget> ThumbBuilder { get; }
+  public bool Enabled { get; }
+  public float EndInset { get; }
+  public float Height { get; }
+  public float SnapThreshold { get; }
+  public float StartInset { get; }
+  public string SemanticsLabel { get; }
+
+public sealed class LumaFlow.DiscreteSliderItem<T>
+  public DiscreteSliderItem(T value, LumaFlow.Widget child, string semanticsLabel)
+  public DiscreteSliderItem(T value, System.Func<bool, LumaFlow.Widget> builder, string semanticsLabel)
+  public DiscreteSliderItem(T value, string label)
+  public T Value { get; }
+  public string SemanticsLabel { get; }
 
 public struct LumaFlow.DragEventDetails
   public DragEventDetails(LumaFlow.PointerEventDetails pointer, UnityEngine.Vector2 delta, UnityEngine.Vector2 totalDelta, bool cancelled = false)
