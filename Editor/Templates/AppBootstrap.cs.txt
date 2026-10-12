@@ -1,0 +1,45 @@
+#nullable enable
+using System.Collections;
+using LumaFlow;
+using UnityEngine;
+using UIDocument = UnityEngine.UIElements.UIDocument;
+
+namespace LumaFlowApp {
+    [DisallowMultipleComponent, RequireComponent(typeof(UIDocument))]
+    public sealed class AppBootstrap : MonoBehaviour {
+        [SerializeField] private UIDocument _uiDocument = null!;
+        private MountHandle? _mount;
+        private Coroutine? _pending;
+
+        private void Awake() => _uiDocument = GetComponent<UIDocument>();
+        private void OnEnable() => _pending = StartCoroutine(MountWhenReady());
+        private IEnumerator MountWhenReady() {
+            while (isActiveAndEnabled && _uiDocument.rootVisualElement?.panel == null) yield return null;
+            _pending = null;
+            if (!isActiveAndEnabled) yield break;
+            _uiDocument.rootVisualElement.Clear();
+            _mount = LumaFlow.LumaFlow.Mount(CreateApplication(), _uiDocument.rootVisualElement);
+        }
+
+        // One pure C# factory supplies both the runtime application and edit-mode UXML.
+        // Keep scene searches, networking and other side effects outside this factory.
+        public static Widget CreateApplication() => new AppRoot();
+
+        private void OnDisable() {
+            if (_pending != null) StopCoroutine(_pending);
+            _pending = null;
+            _mount?.Dispose();
+            _mount = null;
+        }
+    }
+
+    // Start editing here. Changes appear in Game after Unity recompiles, without Play Mode.
+    public sealed class AppRoot : StatelessWidget {
+        private readonly State<int> _count = new(0);
+        public override Widget Build(BuildContext context) => new Padding(new Column(new Widget[] {
+            new Text("My LumaFlow application", new TextStyle(fontSize: 28)),
+            new ReactiveBuilder<int>(_count, count => new Text("Count: " + count)),
+            new LumaFlow.Button("Increase", () => _count.Value++)
+        }, gap: 16), EdgeInsets.All(32));
+    }
+}

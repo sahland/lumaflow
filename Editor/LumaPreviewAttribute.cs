@@ -55,12 +55,24 @@ namespace LumaFlow.Editor {
 
     internal static class LumaPreviewRegistry {
         private static IReadOnlyList<LumaPreviewFactory>? _factories;
+        private static string BootstrapKey => UxmlPreviewStartup.PreferenceKey + ".BootstrapTypes";
 
         internal static IReadOnlyList<LumaPreviewFactory> Factories => _factories ??= Discover();
 
         internal static LumaPreviewFactory? Find(string? id) => string.IsNullOrEmpty(id)
             ? null
             : Factories.FirstOrDefault(factory => factory.Id == id);
+
+        internal static LumaPreviewFactory RegisterBootstrap(MethodInfo method) {
+            var types = EditorPrefs.GetString(BootstrapKey, "").Split('\n').Where(value => !string.IsNullOrEmpty(value)).ToList();
+            var typeName = method.DeclaringType!.AssemblyQualifiedName!;
+            if (!types.Contains(typeName)) {
+                types.Add(typeName);
+                EditorPrefs.SetString(BootstrapKey, string.Join("\n", types));
+                _factories = null;
+            }
+            return Factories.First(factory => factory.Method == method);
+        }
 
         private static IReadOnlyList<LumaPreviewFactory> Discover() {
             var factories = new List<LumaPreviewFactory>();
@@ -81,6 +93,12 @@ namespace LumaFlow.Editor {
                 }
             }
 
+            foreach (var name in EditorPrefs.GetString(BootstrapKey, "").Split('\n')) {
+                var type = Type.GetType(name, throwOnError: false);
+                var method = type == null ? null : UxmlPreviewSceneSetup.FindFactory(type);
+                if (method == null || factories.Any(factory => factory.Method == method)) continue;
+                factories.Add(new LumaPreviewFactory(method, new LumaPreviewAttribute(type!.Name + " / Application")));
+            }
             return factories.OrderBy(factory => factory.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(factory => factory.Id, StringComparer.Ordinal)
                 .ToArray();

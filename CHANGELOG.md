@@ -4,7 +4,28 @@ All notable changes to LumaFlow are documented in this file.
 
 ## [Unreleased]
 
+- Added one-button scene setup in LumaFlow UXML: reuse/create UIDocument,
+  AppBootstrap and Camera, preserve existing PanelSettings, wire document
+  references, and persist edit-mode preview connections with Undo support.
+- Empty projects receive an editable starter in Assets/LumaFlowApp; setup resumes
+  after compilation. Editor snapshots are restored after reload and removed
+  before runtime mounting, including Player startup.
+
+- Fixed Checkbox styling targeting the full native input row instead of its
+  square indicator; check color now tints the checkmark image correctly.
+- Fixed clipped UXML dimension inputs and Performance settings in narrow Editor
+  windows; captions stack above inputs, and Performance content scrolls vertically.
+
 ### Added
+
+- Self-hosted LumaFlow UXML and GUI Performance Editor windows. UXML opens once
+  per interactive project session by default, remembers its source, discovers
+  previews and provides a built-in welcome factory. Startup can be disabled
+  with a persistent project-scoped checkbox.
+- Undoable one-click UXML binding that configures a missing UIDocument, default
+  runtime theme and Panel Settings without overwriting existing panel settings.
+- Automatic Play Mode performance captures with bounded native recorder buffers,
+  explicit unavailable counters and cancellation/disposal on lifecycle changes.
 
 - Balanced mount/update/unmount hooks for borrowed and factory-backed `Native`
   elements.
