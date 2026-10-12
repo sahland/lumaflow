@@ -1,11 +1,9 @@
 #nullable enable
-
 using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 using NativeScrollView = UnityEngine.UIElements.ScrollView;
@@ -19,167 +17,230 @@ namespace LumaFlow.Editor {
         [SerializeField] private int _viewportWidth = 640;
         [SerializeField] private int _viewportHeight = 480;
         [SerializeField] private int _zoomPercent = 100;
+        private readonly State<string> _sourceValue = new("");
+        private readonly State<string> _widthValue = new("640");
+        private readonly State<string> _heightValue = new("480");
+        private readonly State<string> _presetValue = new("Custom");
+        private readonly State<int> _zoomValue = new(100);
+        private readonly State<bool> _compareValue = new(false);
+        private readonly State<bool> _autoValue = new(true);
+        private readonly State<bool> _startupValue = new(true);
+        private readonly State<string> _status = new("Preparing preview…");
+        private readonly List<PreviewChoice> _choices = new();
         private UnityEditor.Editor? _factoryEditor;
         private IMGUIContainer? _inspector;
-        private VisualElement? _runtimePane;
         private string? _outputFolder;
+        private MountHandle? _uiMount;
         private MountHandle? _mount;
         private VisualElement? _runtime;
         private VisualElement? _generated;
-        private Label? _status;
+        private Func<VisualElement>? _createRuntimeViewport;
+        private Func<VisualElement>? _createGeneratedViewport;
         private bool _queued;
-        private PopupField<string>? _codeFactoryField;
+        private bool _sourcesQueued;
+        private string? _sceneSourceId;
+        private bool _connectExisting;
 
+        [MenuItem("Tools/LumaFlow/UXML")]
         [MenuItem("Tools/LumaFlow/UXML Preview (Experimental)")]
         public static void Open() => GetWindow<UxmlPreviewWindow>("LumaFlow UXML");
 
         public void CreateGUI() {
+            _mount?.Dispose(); _mount = null;
+            _uiMount?.Dispose(); _uiMount = null;
             rootVisualElement.Clear();
-            minSize = new Vector2(800, 520);
-            if (_definition == null && string.IsNullOrEmpty(_codeFactoryId)) {
-                var existing = AssetDatabase.FindAssets("t:UxmlPreviewDefinition").FirstOrDefault();
-                if (existing != null) _definition = AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(AssetDatabase.GUIDToAssetPath(existing));
+            minSize = new Vector2(820, 520);
+            try {
+                _sceneSourceId = UxmlPreviewSceneSetup.DiscoverSceneSource();
+                _connectExisting = _sceneSourceId != null;
+            } catch (Exception exception) {
+                _sceneSourceId = null; _connectExisting = false;
+                _status.Value = exception.Message;
             }
-            rootVisualElement.style.backgroundColor = (Color)new Color32(32, 35, 42, 255);
-            var toolbar = new Toolbar();
-            var field = new ObjectField("Preview factory") {
-                objectType = typeof(UxmlPreviewDefinition), allowSceneObjects = false, value = _definition
-            };
-            field.style.flexGrow = 1;
-            field.RegisterValueChangedCallback(change => {
-                _definition = change.newValue as UxmlPreviewDefinition;
-                if (_definition != null) {
-                    _codeFactoryId = "";
-                    _codeFactoryField?.SetValueWithoutNotify("None (use asset)");
-                }
-                RefreshInspector();
-                _outputFolder = null;
-                QueueRebuild();
-            });
-            toolbar.Add(field);
-            toolbar.Add(new ToolbarButton(() => CreateDemo(field)) { text = "New demo" });
-            toolbar.Add(new ToolbarButton(QueueRebuild) { text = "Generate" });
-            toolbar.Add(new ToolbarButton(BindSelectedDocument) { text = "Bind selected UIDocument" });
-            rootVisualElement.Add(toolbar);
-            var options = new Toolbar();
-            var codeFactories = LumaPreviewRegistry.Factories;
-            var codeChoices = new List<string> { "None (use asset)" };
-            codeChoices.AddRange(codeFactories.Select(factory => factory.DisplayName));
-            var selectedCodeIndex = Math.Max(0, codeFactories.ToList().FindIndex(factory => factory.Id == _codeFactoryId) + 1);
-            if (selectedCodeIndex > 0) {
-                var previewSize = codeFactories[selectedCodeIndex - 1].ViewportSize;
-                _viewportWidth = Mathf.RoundToInt(previewSize.x);
-                _viewportHeight = Mathf.RoundToInt(previewSize.y);
-            }
-            _codeFactoryField = new PopupField<string>("Code preview", codeChoices, selectedCodeIndex);
-            _codeFactoryField.name = "code-preview";
-            _codeFactoryField.RegisterValueChangedCallback(change => {
-                var index = codeChoices.IndexOf(change.newValue) - 1;
-                _codeFactoryId = index >= 0 ? codeFactories[index].Id : "";
-                if (index >= 0) {
-                    _definition = null;
-                    field.SetValueWithoutNotify(null);
-                    var previewSize = codeFactories[index].ViewportSize;
-                    _viewportWidth = Mathf.RoundToInt(previewSize.x);
-                    _viewportHeight = Mathf.RoundToInt(previewSize.y);
-                    rootVisualElement.Q<IntegerField>("viewport-width")?.SetValueWithoutNotify(_viewportWidth);
-                    rootVisualElement.Q<IntegerField>("viewport-height")?.SetValueWithoutNotify(_viewportHeight);
-                    ApplyViewport();
-                }
-                RefreshInspector();
-                _outputFolder = null;
-                QueueRebuild();
-            });
-            options.Add(_codeFactoryField);
-            var auto = new ToolbarToggle { text = "Auto refresh", value = _autoRefresh };
-            auto.RegisterValueChangedCallback(change => { _autoRefresh = change.newValue; if (_autoRefresh) QueueRebuild(); });
-            options.Add(auto);
-            var compare = new ToolbarToggle { name = "compare-runtime", text = "Compare runtime", value = _compare };
-            compare.RegisterValueChangedCallback(change => {
-                _compare = change.newValue;
-                if (_runtimePane != null) _runtimePane.style.display = _compare ? DisplayStyle.Flex : DisplayStyle.None;
-                QueueRebuild();
-            });
-            options.Add(compare);
-            var presets = new PopupField<string>(new List<string> { "Custom", "Phone 390×844", "Tablet 768×1024", "Desktop 1920×1080" }, 0);
-            var width = new IntegerField { name = "viewport-width", value = _viewportWidth, tooltip = "Viewport width (pixels)" };
-            var height = new IntegerField { value = _viewportHeight, tooltip = "Viewport height (pixels)" };
-            height.name = "viewport-height";
-            width.style.width = 65;
-            height.style.width = 65;
-            width.RegisterValueChangedCallback(change => { _viewportWidth = Mathf.Clamp(change.newValue, 100, 4096); width.SetValueWithoutNotify(_viewportWidth); ApplyViewport(); });
-            height.RegisterValueChangedCallback(change => { _viewportHeight = Mathf.Clamp(change.newValue, 100, 4096); height.SetValueWithoutNotify(_viewportHeight); ApplyViewport(); });
-            presets.RegisterValueChangedCallback(change => {
-                var size = change.newValue.StartsWith("Phone") ? new Vector2Int(390, 844)
-                    : change.newValue.StartsWith("Tablet") ? new Vector2Int(768, 1024)
-                    : change.newValue.StartsWith("Desktop") ? new Vector2Int(1920, 1080) : new Vector2Int(_viewportWidth, _viewportHeight);
-                width.value = size.x;
-                height.value = size.y;
-            });
-            options.Add(presets);
-            options.Add(width);
-            options.Add(new Label("×"));
-            options.Add(height);
-            var zoomValues = new List<string> { "25%", "50%", "75%", "100%" };
-            var zoom = new PopupField<string>(zoomValues, Math.Max(0, zoomValues.IndexOf(_zoomPercent + "%")));
-            zoom.name = "viewport-zoom";
-            zoom.tooltip = "Display scale only; layout is calculated at the selected viewport size.";
-            zoom.RegisterValueChangedCallback(change => { _zoomPercent = int.Parse(change.newValue.TrimEnd('%')); ApplyViewport(); });
-            options.Add(zoom);
-            rootVisualElement.Add(options);
-            _status = new Label("Select a saved preview factory asset. Preview executes its C# outside Play Mode.");
-            _status.style.color = (Color)new Color32(184, 200, 214, 255);
-            _status.style.marginLeft = 16;
-            _status.style.marginTop = 12;
-            _status.style.marginBottom = 4;
-            _status.style.whiteSpace = WhiteSpace.Normal;
-            rootVisualElement.Add(_status);
-            var body = new VisualElement();
-            body.style.flexDirection = FlexDirection.Row;
-            body.style.flexGrow = 1;
-            body.style.minHeight = 0;
-            var sidebar = new NativeScrollView();
-            sidebar.style.width = 230;
-            sidebar.style.flexShrink = 0;
-            sidebar.style.paddingTop = 12;
-            sidebar.style.paddingLeft = 12;
-            sidebar.style.paddingRight = 12;
-            sidebar.Add(new Label("Preview data"));
-            _inspector = new IMGUIContainer(() => {
-                if (_factoryEditor != null && _factoryEditor.DrawDefaultInspector()) AutoRebuild();
-                else if (CurrentCodeFactory() != null)
-                    EditorGUILayout.HelpBox("This preview comes from a [LumaPreview] method. Edit its C# source to change it.", MessageType.Info);
-                else if (_factoryEditor == null)
-                    EditorGUILayout.HelpBox("Select a factory or create a demo to begin.", MessageType.Info);
-            });
-            sidebar.Add(_inspector);
-            sidebar.Add(new UnityEngine.UIElements.Button(() => {
-                if (_definition != null) AssetDatabase.OpenAsset(MonoScript.FromScriptableObject(_definition));
-                else OpenCodeFactory();
-            }) { text = "Edit factory C#" });
-            sidebar.Add(new UnityEngine.UIElements.Button(() => OpenGenerated("Preview.uxml")) { text = "Open UXML" });
-            sidebar.Add(new UnityEngine.UIElements.Button(() => OpenGenerated("Preview.uss")) { text = "Open USS" });
-            sidebar.Add(new UnityEngine.UIElements.Button(() => {
-                if (_outputFolder != null) EditorUtility.RevealInFinder(Path.GetFullPath(_outputFolder));
-            }) { text = "Show generated files" });
-            body.Add(sidebar);
-            var panes = new VisualElement();
-            panes.style.flexDirection = FlexDirection.Row;
-            panes.style.flexGrow = 1;
-            panes.style.minWidth = 0;
-            panes.style.paddingLeft = 8;
-            panes.style.paddingRight = 8;
-            panes.style.paddingBottom = 8;
-            _runtime = AddPane(panes, "Runtime mount");
-            _runtimePane = panes[0];
-            _runtimePane.name = "runtime-pane";
-            _runtimePane.style.display = _compare ? DisplayStyle.Flex : DisplayStyle.None;
-            _generated = AddPane(panes, "Generated UXML + USS");
-            _generated.name = "generated-viewport";
-            body.Add(panes);
-            rootVisualElement.Add(body);
+            RefreshChoices();
+            var saved = _sceneSourceId ?? (_definition != null ? "asset:" + AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_definition))
+                : !string.IsNullOrEmpty(_codeFactoryId) ? "code:" + _codeFactoryId
+                : EditorPrefs.GetString(UxmlPreviewStartup.SourceKey, ""));
+            var preferred = _choices.FirstOrDefault(item => item.Id == saved);
+            var choice = preferred
+                ?? _choices.FirstOrDefault(item => item.Factory?.Method.DeclaringType != typeof(BuiltInUxmlPreview))
+                ?? _choices.First();
+            SelectChoice(choice, resetViewport: preferred == null, persist: false);
+            _autoValue.Value = _autoRefresh;
+            _compareValue.Value = _compare;
+            _startupValue.Value = UxmlPreviewStartup.ShowOnStartup;
+            SyncViewportState();
+            if (preferred == null) FitPreview();
             RefreshInspector();
+            _uiMount = global::LumaFlow.LumaFlow.Mount(
+                new Theme(EditorToolWidgets.Theme, new Scaffold(BuildWindow())), rootVisualElement);
             ApplyViewport();
+            QueueRebuild();
+        }
+
+        private Widget BuildWindow() => SizedBox.Expand(new Padding(new Column(new Widget[] {
+            new Row(new Widget[] {
+                new Expanded(new Column(new Widget[] {
+                    new Text("LumaFlow UXML", EditorToolWidgets.Theme.Typography.Title),
+                    EditorToolWidgets.Hint("C# → UXML + USS · automatic edit-mode preview")
+                }, gap: 4)),
+                new Button("GUI Performance", GuiPerformanceWindow.Open, ButtonVariant.Secondary)
+            }, gap: 16),
+            new ReactiveBuilder<string>(_status, text => EditorToolWidgets.Hint(text)),
+            new Expanded(new Row(new Widget[] {
+                new SizedBox(new ScrollView(BuildSettings()), width: 272),
+                new Expanded(new ReactiveBuilder<bool>(_compareValue, BuildPreviewArea))
+            }, gap: 16))
+        }, gap: 16), EdgeInsets.All(16)));
+
+        private Widget BuildSettings() => new Column(new Widget[] {
+            new Button("Автонастройка сцены", AutoSetupScene),
+            EditorToolWidgets.Hint("Reuse or create UIDocument, AppBootstrap and Camera. View C# changes in Game without Play Mode."),
+            new Text("Preview source", EditorToolWidgets.Theme.Typography.Headline),
+            new Dropdown<string>(_sourceValue, _choices.Select(item => item.Id),
+                id => _choices.First(item => item.Id == id).Label,
+                onChanged: SelectSource),
+            EditorToolWidgets.Hint("Sources are discovered automatically. The welcome example works without scene setup."),
+            new Native(() => _inspector = new IMGUIContainer(DrawFactoryInspector)),
+            new Button("Edit factory C#", EditFactory, ButtonVariant.Secondary),
+            new Text("Viewport", EditorToolWidgets.Theme.Typography.Headline),
+            new Dropdown<string>(_presetValue, new[] { "Custom", "Phone 390×844", "Tablet 768×1024", "Desktop 1920×1080" },
+                value => value, onChanged: ApplyPreset),
+            new Row(new Widget[] {
+                new SizedBox(EditorToolWidgets.Field("Width", new TextField(_widthValue,
+                    onSubmitted: _ => ApplyDimensions())), width: 120),
+                new SizedBox(EditorToolWidgets.Field("Height", new TextField(_heightValue,
+                    onSubmitted: _ => ApplyDimensions())), width: 120)
+            }, gap: 8),
+            new Row(new Widget[] {
+                new Expanded(new Button("Apply size", ApplyDimensions, ButtonVariant.Secondary)),
+                new Expanded(new Button("Fit preview", FitPreview, ButtonVariant.Secondary))
+            }, gap: 8),
+            EditorToolWidgets.Field("Display zoom", new Dropdown<int>(_zoomValue, new[] { 25, 50, 75, 100 }, value => value + "%",
+                onChanged: value => { _zoomPercent = value; ApplyViewport(); })),
+            new Checkbox(_autoValue, label: "Auto refresh", onChanged: value => { _autoRefresh = value; if (value) QueueRebuild(); }),
+            new Checkbox(_compareValue, label: "Compare runtime", onChanged: SetCompare),
+            new Checkbox(_startupValue, label: "Show on project startup",
+                onChanged: value => UxmlPreviewStartup.ShowOnStartup = value),
+            new Button("Generate now", QueueRebuild),
+            new Button("Bind selected UIDocument", BindSelectedDocument, ButtonVariant.Secondary),
+            EditorToolWidgets.Hint("Binding is explicit and Undoable. Existing scene documents are never overwritten on startup."),
+            new Button("New demo asset", CreateDemo, ButtonVariant.Secondary),
+            new Row(new Widget[] {
+                new Expanded(new Button("Open UXML", () => OpenGenerated("Preview.uxml"), ButtonVariant.Secondary)),
+                new Expanded(new Button("Open USS", () => OpenGenerated("Preview.uss"), ButtonVariant.Secondary))
+            }, gap: 8),
+            new Button("Show generated files", () => {
+                if (_outputFolder != null) EditorUtility.RevealInFinder(Path.GetFullPath(_outputFolder));
+            }, ButtonVariant.Secondary)
+        }, gap: 12);
+
+        private Widget BuildPreviewArea(bool compare) {
+            var panes = new List<Widget>();
+            if (compare) panes.Add(new Expanded(BuildPane("Live LumaFlow", true)).WithKey(new WidgetKey("live")));
+            panes.Add(new Expanded(BuildPane("Generated UXML · visual snapshot", false)).WithKey(new WidgetKey("generated")));
+            return SizedBox.Expand(new Row(panes, gap: 12));
+        }
+
+        private Widget BuildPane(string title, bool runtime) => SizedBox.Expand(EditorToolWidgets.Card(
+            SizedBox.Expand(new Column(new Widget[] {
+                new Text(title, EditorToolWidgets.Theme.Typography.Headline),
+                new Expanded(new Native(runtime
+                    ? (_createRuntimeViewport ??= () => CreateViewport(true))
+                    : (_createGeneratedViewport ??= () => CreateViewport(false))))
+            }, gap: 12))));
+
+        // The only native UI here is the exported document canvas and Unity's serialized-data inspector.
+        private VisualElement CreateViewport(bool runtime) {
+            var content = new VisualElement { name = runtime ? "runtime-viewport" : "generated-viewport" };
+            content.style.position = Position.Absolute;
+            content.style.left = 0; content.style.top = 0; content.style.flexShrink = 0;
+            var frame = new VisualElement();
+            frame.style.flexShrink = 0; frame.style.overflow = Overflow.Hidden;
+            frame.Add(content);
+            var scroll = new NativeScrollView(ScrollViewMode.VerticalAndHorizontal) {
+                name = runtime ? "runtime-pane" : "generated-pane"
+            };
+            scroll.style.flexGrow = 1; scroll.style.minHeight = 0; scroll.style.minWidth = 0;
+            scroll.Add(frame);
+            if (runtime) _runtime = content; else _generated = content;
+            ApplyViewport();
+            return scroll;
+        }
+
+        private void RefreshChoices() {
+            _choices.Clear();
+            foreach (var guid in AssetDatabase.FindAssets("t:UxmlPreviewDefinition").OrderBy(value => value, StringComparer.Ordinal)) {
+                var asset = AssetDatabase.LoadAssetAtPath<UxmlPreviewDefinition>(AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null) _choices.Add(new PreviewChoice("asset:" + guid, asset.name + " (asset)", asset, null));
+            }
+            foreach (var factory in LumaPreviewRegistry.Factories)
+                _choices.Add(new PreviewChoice("code:" + factory.Id, factory.DisplayName, null, factory));
+        }
+
+        private void SelectSource(string id) {
+            SelectChoice(_choices.First(item => item.Id == id), resetViewport: true, persist: true);
+            RefreshInspector();
+            _outputFolder = null;
+            QueueRebuild();
+        }
+
+        private void SelectChoice(PreviewChoice choice, bool resetViewport, bool persist) {
+            _definition = choice.Definition;
+            _codeFactoryId = choice.Factory?.Id ?? "";
+            _sourceValue.Value = choice.Id;
+            if (persist) EditorPrefs.SetString(UxmlPreviewStartup.SourceKey, choice.Id);
+            if (resetViewport) {
+                var size = choice.Definition != null ? choice.Definition.Environment.ResolveViewport() : choice.Factory!.ViewportSize;
+                SetPreviewViewport(Mathf.RoundToInt(size.x), Mathf.RoundToInt(size.y), _zoomPercent);
+            }
+        }
+
+        private void DrawFactoryInspector() {
+            if (_factoryEditor != null && _factoryEditor.DrawDefaultInspector()) AutoRebuild();
+        }
+
+        private void ApplyPreset(string preset) {
+            if (preset.StartsWith("Phone")) SetPreviewViewport(390, 844, 50);
+            else if (preset.StartsWith("Tablet")) SetPreviewViewport(768, 1024, 50);
+            else if (preset.StartsWith("Desktop")) SetPreviewViewport(1920, 1080, 25);
+        }
+
+        private void ApplyDimensions() {
+            if (!int.TryParse(_widthValue.Value, out var width) || !int.TryParse(_heightValue.Value, out var height)) {
+                _status.Value = "Width and height must be whole numbers (100–4096).";
+                return;
+            }
+            _presetValue.Value = "Custom";
+            SetPreviewViewport(width, height, _zoomPercent);
+        }
+
+        internal void SetPreviewViewport(int width, int height, int zoom) {
+            _viewportWidth = Mathf.Clamp(width, 100, 4096);
+            _viewportHeight = Mathf.Clamp(height, 100, 4096);
+            _zoomPercent = new[] {25, 50, 75, 100}.Contains(zoom) ? zoom : 100;
+            SyncViewportState(); ApplyViewport();
+        }
+
+        private void SyncViewportState() {
+            _widthValue.Value = _viewportWidth.ToString();
+            _heightValue.Value = _viewportHeight.ToString();
+            _zoomValue.Value = _zoomPercent;
+        }
+
+        private void FitPreview() {
+            var width = (Mathf.Max(minSize.x, position.width) - 340f) / (_compare ? 2f : 1f) - 32f;
+            var height = Mathf.Max(minSize.y, position.height) - 160f;
+            var fit = Mathf.Min(width / _viewportWidth, height / _viewportHeight) * 100f;
+            _zoomPercent = fit >= 100 ? 100 : fit >= 75 ? 75 : fit >= 50 ? 50 : 25;
+            _zoomValue.Value = _zoomPercent;
+            ApplyViewport();
+        }
+
+        private void SetCompare(bool value) {
+            _compare = value;
+            _mount?.Dispose(); _mount = null;
+            if (!value) _runtime = null;
             QueueRebuild();
         }
 
@@ -189,25 +250,32 @@ namespace LumaFlow.Editor {
             _inspector?.MarkDirtyRepaint();
         }
 
-        private void CreateDemo(ObjectField field) {
+        private void CreateDemo() {
             var path = EditorUtility.SaveFilePanelInProject("Create preview factory", "UxmlPreviewDemo", "asset", "Choose where to save preview data.");
             if (string.IsNullOrEmpty(path)) return;
             var asset = CreateInstance<UxmlPreviewDemo>();
             AssetDatabase.CreateAsset(asset, path);
             Undo.RegisterCreatedObjectUndo(asset, "Create preview factory");
-            field.value = asset;
+            RefreshChoices();
+            // Recreate only the settings UI when the available source list changes.
+            _definition = asset; _codeFactoryId = "";
+            CreateGUI();
+            EditorPrefs.SetString(UxmlPreviewStartup.SourceKey, _sourceValue.Value);
+        }
+
+        private void EditFactory() {
+            if (_definition != null) AssetDatabase.OpenAsset(MonoScript.FromScriptableObject(_definition));
+            else OpenCodeFactory();
         }
 
         private void OpenGenerated(string name) {
-            if (_outputFolder == null) return;
-            AssetDatabase.OpenAsset(AssetDatabase.LoadMainAssetAtPath(_outputFolder + "/" + name));
+            if (_outputFolder != null) AssetDatabase.OpenAsset(AssetDatabase.LoadMainAssetAtPath(_outputFolder + "/" + name));
         }
 
         private void ApplyViewport() {
             foreach (var viewport in new[] { _runtime, _generated }) {
-                if (viewport == null) continue;
-                viewport.style.width = _viewportWidth;
-                viewport.style.height = _viewportHeight;
+                if (viewport?.parent == null) continue;
+                viewport.style.width = _viewportWidth; viewport.style.height = _viewportHeight;
                 var scale = _zoomPercent / 100f;
                 viewport.style.scale = new Scale(new Vector3(scale, scale, 1));
                 viewport.style.transformOrigin = new TransformOrigin(0, 0, 0);
@@ -216,47 +284,62 @@ namespace LumaFlow.Editor {
             }
         }
 
-        private static VisualElement AddPane(VisualElement parent, string title) {
-            var pane = new VisualElement();
-            pane.style.flexGrow = 1;
-            pane.style.flexBasis = 0;
-            pane.style.minWidth = 0;
-            pane.style.minHeight = 0;
-            pane.style.marginLeft = 8;
-            pane.style.marginRight = 8;
-            pane.style.marginTop = 8;
-            var label = new Label(title);
-            label.style.color = (Color)new Color32(243, 242, 238, 255);
-            label.style.fontSize = 13;
-            label.style.marginBottom = 12;
-            pane.Add(label);
-            var content = new VisualElement();
-            content.style.flexShrink = 0;
-            content.style.position = Position.Absolute;
-            content.style.left = 0;
-            content.style.top = 0;
-            var frame = new VisualElement();
-            frame.style.flexShrink = 0;
-            frame.style.overflow = Overflow.Hidden;
-            frame.Add(content);
-            var scroll = new NativeScrollView(ScrollViewMode.VerticalAndHorizontal);
-            scroll.style.flexGrow = 1;
-            scroll.Add(frame);
-            pane.Add(scroll);
-            parent.Add(pane);
-            return content;
-        }
-
         private void OnEnable() {
             Undo.undoRedoPerformed += AutoRebuild;
+            EditorApplication.projectChanged += QueueSourceRefresh;
+            EditorApplication.playModeStateChanged += OnPlayModeChanged;
+            UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnSceneChanged;
+        }
+
+        private void OnSceneChanged(UnityEngine.SceneManagement.Scene previous, UnityEngine.SceneManagement.Scene next) {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            EditorApplication.delayCall -= RefreshScene;
+            EditorApplication.delayCall += RefreshScene;
+        }
+        private void RefreshScene() { if (this != null) CreateGUI(); }
+
+        private void OnPlayModeChanged(PlayModeStateChange state) {
+            if (state == PlayModeStateChange.ExitingEditMode) _status.Value = "Preview generation is paused during Play Mode.";
+            if (state == PlayModeStateChange.EnteredEditMode) QueueRebuild();
+        }
+
+        private void QueueSourceRefresh() {
+            if (_sourcesQueued) return;
+            _sourcesQueued = true; EditorApplication.delayCall += RefreshSources;
+        }
+
+        private void RefreshSources() {
+            _sourcesQueued = false;
+            if (this == null || _uiMount == null) return;
+            var oldIds = _choices.Select(item => item.Id + "=" + item.Label).ToArray();
+            RefreshChoices();
+            if (!oldIds.SequenceEqual(_choices.Select(item => item.Id + "=" + item.Label))) CreateGUI();
+            else AutoRebuild();
         }
 
         private void OnDisable() {
             Undo.undoRedoPerformed -= AutoRebuild;
+            EditorApplication.projectChanged -= QueueSourceRefresh;
+            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+            UnityEngine.SceneManagement.SceneManager.activeSceneChanged -= OnSceneChanged;
+            EditorApplication.delayCall -= RefreshScene;
             EditorApplication.delayCall -= Rebuild;
-            _mount?.Dispose();
-            _mount = null;
+            EditorApplication.delayCall -= RefreshSources;
+            _queued = false; _sourcesQueued = false;
+            _mount?.Dispose(); _mount = null;
+            _uiMount?.Dispose(); _uiMount = null;
             if (_factoryEditor != null) DestroyImmediate(_factoryEditor);
+            _factoryEditor = null; _runtime = null; _generated = null;
+        }
+
+        private sealed class PreviewChoice {
+            internal PreviewChoice(string id, string label, UxmlPreviewDefinition? definition, LumaPreviewFactory? factory) {
+                Id = id; Label = label; Definition = definition; Factory = factory;
+            }
+            internal string Id { get; }
+            internal string Label { get; }
+            internal UxmlPreviewDefinition? Definition { get; }
+            internal LumaPreviewFactory? Factory { get; }
         }
 
         internal void QueueRebuild() {
@@ -271,13 +354,13 @@ namespace LumaFlow.Editor {
 
         private void Rebuild() {
             _queued = false;
-            if (this == null || _runtime == null || _generated == null) return;
+            if (this == null || _generated == null || (_compare && _runtime == null)) return;
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
             var codeFactory = CurrentCodeFactory();
             if (_definition == null && codeFactory == null) {
                 _mount?.Dispose();
                 _mount = null;
-                _runtime.Clear();
+                _runtime?.Clear();
                 _generated.Clear();
                 return;
             }
@@ -289,38 +372,78 @@ namespace LumaFlow.Editor {
                 _outputFolder = folder;
                 _mount?.Dispose();
                 _mount = null;
-                _runtime.Clear();
+                _runtime?.Clear();
                 _generated.Clear();
                 if (_compare) {
                     var widget = _definition != null ? _definition.CreatePreviewWidget() : codeFactory!.CreateWidget();
-                    _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime);
+                    _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime!);
                 }
                 tree.CloneTree(_generated);
+                var sourceId = CurrentStatusId(codeFactory);
+                UxmlPreviewSceneSync.Apply(sourceId, tree);
+                if (_connectExisting && _sceneSourceId == sourceId) {
+                    _connectExisting = false;
+                    var existing = UxmlPreviewSceneSetup.FindDocument(UxmlPreviewSceneSetup.FindBootstrap());
+                    if (existing != null && existing.GetComponent<UxmlPreviewBinding>() == null)
+                        UxmlPreviewSceneSetup.Configure(tree, sourceId);
+                }
                 UxmlPreviewStatus.ReportSuccess(CurrentStatusId(codeFactory));
-                _status!.text = "Updated " + DateTime.Now.ToString("HH:mm:ss") + " · visual snapshot (no callbacks)";
-                _status.tooltip = folder + "/Preview.uxml";
+                _status.Value = "Updated " + DateTime.Now.ToString("HH:mm:ss") + " · visual snapshot (no callbacks)";
+
             } catch (Exception exception) {
-                _status!.text = "Preview failed: " + exception.Message;
+                _status.Value = "Preview failed: " + exception.Message;
                 UxmlPreviewStatus.ReportFailure(CurrentStatusId(codeFactory), CurrentSourceLabel(codeFactory), exception);
                 Debug.LogException(exception);
             }
         }
 
+        internal void AutoSetupScene() {
+            try {
+                if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode before auto setup.");
+                if (UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage() != null)
+                    throw new InvalidOperationException("Open a regular scene, not Prefab Mode.");
+                if (UxmlPreviewQuickStart.NeedsStarter) {
+                    UxmlPreviewQuickStart.CreateStarter();
+                    _status.Value = "Starter scripts created in Assets/LumaFlowApp. Setup will finish automatically after compilation.";
+                    return;
+                }
+                var bootstrap = UxmlPreviewSceneSetup.FindBootstrap();
+                var type = bootstrap?.GetType();
+                if (type == null) {
+                    var types = TypeCache.GetTypesDerivedFrom<MonoBehaviour>().Where(candidate => candidate.Name == "AppBootstrap" && !candidate.IsAbstract && !candidate.ContainsGenericParameters).ToArray();
+                    if (types.Length != 1) throw new InvalidOperationException("Add the intended AppBootstrap to the scene first.");
+                    type = types[0];
+                }
+                var method = UxmlPreviewSceneSetup.FindFactory(type);
+                if (method == null) throw new InvalidOperationException("AppBootstrap needs a parameterless static Widget CreateApplication(), or a static [LumaPreview] Widget factory.");
+                var factory = LumaPreviewRegistry.RegisterBootstrap(method);
+                _definition = null; _codeFactoryId = factory.Id;
+                CreateGUI();
+                var tree = UxmlPreviewGenerator.Generate(factory, out var path);
+                var document = UxmlPreviewSceneSetup.Configure(tree, "code:" + factory.Id, type);
+                _outputFolder = Path.GetDirectoryName(path)!.Replace('\\', '/');
+                Selection.activeGameObject = document.gameObject;
+                _status.Value = "Scene connected · open Game without Play Mode. Save the scene to keep setup; Undo restores the previous configuration.";
+            } catch (Exception exception) {
+                _status.Value = "Auto setup: " + exception.Message;
+                Debug.LogWarning(_status.Value);
+            }
+        }
+
         private void BindSelectedDocument() {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) {
+                _status.Value = "Stop Play Mode before binding a scene preview.";
+                return;
+            }
             var codeFactory = CurrentCodeFactory();
             if (_definition == null && codeFactory == null) {
-                _status!.text = "Select a preview factory first.";
+                _status.Value = "Select a preview factory first.";
                 return;
             }
 
-            var document = Selection.activeGameObject?.GetComponent<UIDocument>();
-            if (document == null) {
-                _status!.text = "Select a scene GameObject containing UIDocument, then bind again.";
-                return;
-            }
-
-            if (document.panelSettings == null) {
-                _status!.text = "The selected UIDocument needs Panel Settings before it can render in Game View.";
+            var target = Selection.activeGameObject;
+            if (target == null || EditorUtility.IsPersistent(target)) {
+                _status.Value = "Select a scene GameObject. Bind will configure its UIDocument and missing Panel Settings automatically.";
                 return;
             }
 
@@ -328,16 +451,14 @@ namespace LumaFlow.Editor {
                 var tree = _definition != null
                     ? UxmlPreviewGenerator.Generate(_definition, out var path)
                     : UxmlPreviewGenerator.Generate(codeFactory!, out path);
-                Undo.RecordObject(document, "Bind LumaFlow UXML preview");
-                document.visualTreeAsset = tree;
-                EditorUtility.SetDirty(document);
+                UxmlPreviewSetup.Bind(target, tree);
                 _outputFolder = Path.GetDirectoryName(path)!.Replace('\\', '/');
                 UxmlPreviewStatus.ReportSuccess(CurrentStatusId(codeFactory));
-                _status!.text = "Bound to " + document.gameObject.name
+                _status.Value = "Bound to " + target.name
                     + " · leave Play Mode stopped; C# compilation now regenerates this UXML automatically.";
-                Selection.activeObject = document.gameObject;
+                Selection.activeObject = target;
             } catch (Exception exception) {
-                _status!.text = "Binding failed: " + exception.Message;
+                _status.Value = "Binding failed: " + exception.Message;
                 UxmlPreviewStatus.ReportFailure(CurrentStatusId(codeFactory), CurrentSourceLabel(codeFactory), exception);
                 Debug.LogException(exception);
             }

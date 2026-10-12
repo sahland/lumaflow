@@ -16,17 +16,22 @@ public static class UxmlPreviewSmoke {
 
     public static void Run() {
         try {
-            var regressionType = Type.GetType("LumaFlow.Editor.Tests.UxmlPreviewTests, LumaFlow.Editor.Tests", true);
-            var regression = Activator.CreateInstance(regressionType);
             var count = 0;
-            foreach (var method in regressionType.GetMethods()) {
-                foreach (var attribute in method.GetCustomAttributes(false)) {
-                    if (attribute.GetType().FullName != "NUnit.Framework.TestAttribute") continue;
-                    method.Invoke(regression, null);
-                    count++;
+            foreach (var typeName in new[] { "UxmlPreviewTests", "EditorToolStartupTests" }) {
+                var regressionType = Type.GetType("LumaFlow.Editor.Tests." + typeName + ", LumaFlow.Editor.Tests", true);
+                var regression = Activator.CreateInstance(regressionType);
+                foreach (var method in regressionType.GetMethods()) {
+                    foreach (var attribute in method.GetCustomAttributes(false)) {
+                        var name = attribute.GetType().FullName;
+                        if (name == "NUnit.Framework.TestAttribute") { method.Invoke(regression, null); count++; }
+                        else if (name == "NUnit.Framework.TestCaseAttribute") {
+                            method.Invoke(regression, (object[])attribute.GetType().GetProperty("Arguments").GetValue(attribute));
+                            count++;
+                        }
+                    }
                 }
             }
-            if (count < 11) throw new Exception("Preview regression tests were not discovered");
+            if (count < 21) throw new Exception("Preview/editor-tool regression tests were not discovered: " + count);
             Debug.Log($"UXML_PREVIEW_REGRESSIONS_PASSED: {count}");
             var definition = ScriptableObject.CreateInstance<UxmlPreviewDemo>();
             var export = UxmlPreviewExporter.Export(definition.CreateWidget(), "Preview.uss");

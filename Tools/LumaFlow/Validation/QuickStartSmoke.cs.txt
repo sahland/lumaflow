@@ -1,0 +1,62 @@
+#nullable enable
+using System;
+using System.Linq;
+using LumaFlow;
+using LumaFlow.Editor;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+[InitializeOnLoad]
+public static class QuickStartValidation {
+    static QuickStartValidation() { EditorApplication.update += Check; }
+    public static void RunQuickStart() {
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+        EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),"Assets/QuickStart.unity");
+        SessionState.SetInt("QuickStart.Stage",1);
+        SessionState.SetFloat("QuickStart.Deadline",(float)EditorApplication.timeSinceStartup+45);
+        if (!UxmlPreviewQuickStart.NeedsStarter) throw new Exception("Fixture is not empty");
+        UxmlPreviewQuickStart.CreateStarter();
+    }
+    static void Check() {
+        var stage=SessionState.GetInt("QuickStart.Stage",0);
+        if(stage==0)return;
+        try {
+            if(EditorApplication.timeSinceStartup>SessionState.GetFloat("QuickStart.Deadline",0))throw new Exception("Quick start timeout, stage="+stage);
+            if(EditorApplication.isCompiling || EditorApplication.isUpdating)return;
+            var binding=UnityEngine.Object.FindAnyObjectByType<UxmlPreviewBinding>();
+            if(binding==null)return;
+            var doc=binding.Document;
+            if(stage==1) {
+                if(doc.visualTreeAsset==null)return;
+                if(binding.Bootstrap?.GetType().Name!="AppBootstrap" || doc.panelSettings?.themeStyleSheet==null)throw new Exception("Starter not configured");
+                if(UxmlPreviewSceneSetup.InScene<Camera>().Length!=1 || UxmlPreviewSceneSetup.InScene<UIDocument>().Length!=1)throw new Exception("Starter duplicated/missing objects");
+                if(!doc.rootVisualElement.Query<Label>().ToList().Any(label=>label.text=="My LumaFlow application"))return;
+                EditorSceneManager.SaveScene(doc.gameObject.scene);
+                SessionState.SetInt("QuickStart.Stage",4);
+                const string path="Assets/LumaFlowApp/AppBootstrap.cs";
+                System.IO.File.WriteAllText(path,System.IO.File.ReadAllText(path).Replace("My LumaFlow application","Edited application"));
+                AssetDatabase.ImportAsset(path);
+            } else if(stage==4) {
+                if(!doc.rootVisualElement.Query<Label>().ToList().Any(label=>label.text=="Edited application"))return;
+                SessionState.SetInt("QuickStart.Stage",2);
+                EditorApplication.isPlaying=true;
+            } else if(stage==2 && EditorApplication.isPlaying) {
+                if(doc.visualTreeAsset!=null)throw new Exception("Editor snapshot leaked into Play Mode");
+                var button=doc.rootVisualElement.Q<UnityEngine.UIElements.Button>();
+                if(button==null)return;
+                using(var evt=NavigationSubmitEvent.GetPooled()){evt.target=button;button.SendEvent(evt);}
+                if(!doc.rootVisualElement.Query<Label>().ToList().Any(label=>label.text=="Count: 1"))throw new Exception("Starter runtime button is not interactive");
+                SessionState.SetInt("QuickStart.Stage",3);
+                EditorApplication.isPlaying=false;
+            } else if(stage==3 && !EditorApplication.isPlayingOrWillChangePlaymode) {
+                if(doc.visualTreeAsset==null)return;
+                if(!doc.rootVisualElement.Query<Label>().ToList().Any(label=>label.text=="Edited application"))return;
+                SessionState.EraseInt("QuickStart.Stage");
+                Debug.Log("EDITOR_TOOLS_QUICKSTART PASSED: generated starter compiled; setup resumed; Game edit-mode UI; C# edit/recompile updated scene UI; interactive runtime; editor snapshot restored");
+                EditorApplication.Exit(0);
+            }
+        }catch(Exception e){SessionState.EraseInt("QuickStart.Stage");Debug.LogException(e);EditorApplication.Exit(1);}
+    }
+}

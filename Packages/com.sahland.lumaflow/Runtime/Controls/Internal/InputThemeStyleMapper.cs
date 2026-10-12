@@ -60,8 +60,9 @@ namespace LumaFlow {
 
         public static void ApplyCheckbox(UnityEngine.UIElements.Toggle checkbox, ThemeData? theme, CheckboxStyle? style, WidgetStates states, TextScaler textScaler = default) {
             if (theme is not null) ApplyLabel(checkbox, theme, textScaler);
-            var input = checkbox.Q<VisualElement>(className: "unity-toggle__input")
-                ?? checkbox.Q<VisualElement>(className: "unity-base-field__input");
+            // The input is a flex row containing the indicator, not its visual surface.
+            // Painting/sizing that row produces a full-width colored bar in Editor panels.
+            var input = checkbox.Q<VisualElement>(className: "unity-toggle__checkmark");
             if (input is null) return;
             var themedStyle = theme?.CheckboxTheme.Style;
             var selected = (states & WidgetStates.Selected) != 0;
@@ -77,6 +78,12 @@ namespace LumaFlow {
             input.style.borderRightColor = border;
             input.style.borderBottomColor = border;
             input.style.borderLeftColor = border;
+            input.style.borderTopWidth = 1f;
+            input.style.borderRightWidth = 1f;
+            input.style.borderBottomWidth = 1f;
+            input.style.borderLeftWidth = 1f;
+            input.style.flexGrow = 0f;
+            input.style.flexShrink = 0f;
             if ((style?.ResolveSize(states) ?? themedStyle?.ResolveSize(states)) is { } size) {
                 input.style.width = size;
                 input.style.height = size;
@@ -97,7 +104,7 @@ namespace LumaFlow {
                 input.style.borderBottomLeftRadius = StyleKeyword.Null;
             }
             var checkmark = checkbox.Q<VisualElement>(className: "unity-toggle__checkmark");
-            if (checkmark is not null) checkmark.style.color = style?.ResolveCheckColor(states)
+            if (checkmark is not null) checkmark.style.unityBackgroundImageTintColor = style?.ResolveCheckColor(states)
                 ?? themedStyle?.ResolveCheckColor(states)
                 ?? theme?.Colors.OnPrimary
                 ?? UnityEngine.Color.white;

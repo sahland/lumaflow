@@ -1,0 +1,226 @@
+// Standalone isolated-project validation; compiled by Invoke-EditorToolsSmoke.ps1.
+#nullable enable
+using System;
+using System.Linq;
+using System.Reflection;
+using LumaFlow;
+using LumaFlow.Editor;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+[InitializeOnLoad]
+public static class EditorToolsValidation {
+    static int checks;
+    static GuiPerformanceWindow? performance;
+    static double deadline;
+    static int phase;
+    static bool sawCapture;
+    static readonly BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+    static EditorToolsValidation() {
+        // Some headless Unity Search startup callbacks throw before later delayCall delegates run.
+        EditorApplication.update += BootstrapPerformance;
+        EditorApplication.playModeStateChanged += state => {
+            if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("EditorTools.Perf", false))
+                EditorApplication.delayCall += SetupPerformance;
+            if (state == PlayModeStateChange.EnteredEditMode && SessionState.GetBool("EditorTools.Done", false)) {
+                SessionState.EraseBool("EditorTools.Done");
+                Debug.Log("EDITOR_TOOLS_PERFORMANCE PASSED: automatic capture, manual capture, pause, cancel, close and recorder disposal");
+                EditorApplication.Exit(0);
+            }
+        };
+    }
+    static void BootstrapPerformance() {
+        if (EditorApplication.isPlaying && SessionState.GetBool("EditorTools.Perf", false)) {
+            EditorApplication.update -= BootstrapPerformance;
+            SetupPerformance();
+        }
+    }
+    static void Require(bool ok, string message) { checks++; if (!ok) throw new Exception(message); }
+    static void CheckControls(EditorWindow window, float width, float height) {
+        window.position = new Rect(0,0,width,height);
+        var root = window.rootVisualElement;
+        root.panel.GetType().GetMethod("ValidateLayout",Hidden|BindingFlags.Public)!.Invoke(root.panel,null);
+        foreach (var toggle in root.Query<Toggle>().ToList()) {
+            var input = toggle.Q(className: "unity-toggle__input");
+            var mark = toggle.Q(className: "unity-toggle__checkmark");
+            Require(input.resolvedStyle.backgroundColor.a == 0, "Checkbox paints the whole input row: " + toggle.label);
+            Require(mark.worldBound.width >= 10 && mark.worldBound.width <= 32, "Checkbox indicator is not compact");
+        }
+        foreach (var field in root.Query<UnityEngine.UIElements.TextField>().ToList()) {
+            var input = field.Q(className: UnityEngine.UIElements.TextField.inputUssClassName);
+            Require(input.worldBound.width >= 60, "Text input clipped at width " + width + ": " + field.label);
+            Require(input.worldBound.xMax <= root.worldBound.xMax + 1, "Text input outside window");
+        }
+        foreach (var dropdown in root.Query<PopupField<int>>().ToList())
+            Require(dropdown.worldBound.xMax <= root.worldBound.xMax + 1, "Capture dropdown outside window");
+    }
+    [LumaPreview("Validation / Discovered", Width=640, Height=480)]
+    static Widget Discovered() => new Text("Discovered C# preview");
+    static void Rebuild(UxmlPreviewWindow window) {
+        var method=typeof(UxmlPreviewWindow).GetMethod("Rebuild",Hidden)!;
+        EditorApplication.delayCall -= (EditorApplication.CallbackFunction)Delegate.CreateDelegate(typeof(EditorApplication.CallbackFunction),window,method);
+        method.Invoke(window,null);
+    }
+    public static void RunEdit() {
+        UxmlPreviewWindow? window=null;
+        GuiPerformanceWindow? perf=null;
+        var preference=UxmlPreviewStartup.ShowOnStartup;
+        var source=EditorPrefs.GetString(UxmlPreviewStartup.SourceKey, "");
+        var baseline=LumaFlowDiagnostics.CaptureActiveTrees().Count;
+        try {
+            Require(UxmlPreviewStartup.ShouldOpen(true,false,false),"Startup default");
+            Require(!UxmlPreviewStartup.ShouldOpen(false,false,false),"Disabled startup");
+            Require(!UxmlPreviewStartup.ShouldOpen(true,true,false),"Reload repeated startup");
+            Require(!UxmlPreviewStartup.ShouldOpen(true,false,true),"Batch startup");
+            window=ScriptableObject.CreateInstance<UxmlPreviewWindow>();
+            window.position=new Rect(0,0,1100,740);
+            window.Show();
+            window.CreateGUI();
+            var root=window.rootVisualElement;
+            CheckControls(window,820,520);
+            CheckControls(window,1200,740);
+            root.panel.GetType().GetMethod("ValidateLayout",Hidden|BindingFlags.Public)!.Invoke(root.panel,null);
+            Require(root.Q("generated-pane").worldBound.height>300,"Generated pane collapsed");
+            Require(root.Q("generated-pane").worldBound.width>400,"Generated pane width collapsed");
+            Require(root.Q("lumaflow-mount-host")!=null,"Window is not LumaFlow mounted");
+            var picker=root.Query<PopupField<string>>().ToList().First();
+            Require(picker.choices.Any(id=>picker.formatListItemCallback(id)=="Validation / Discovered"),"Factory not discovered");
+            Rebuild(window);
+            Require(root.Q("generated-viewport").Query<Label>().ToList().Any(l=>l.text=="Discovered C# preview"),"Auto configured source not rendered");
+            var startup=root.Query<Toggle>().ToList().Single(t=>t.label=="Show on project startup");
+            startup.value=false;
+            Require(!UxmlPreviewStartup.ShowOnStartup,"Checkbox preference not persisted");
+            window.SetPreviewViewport(800,480,50);
+            var viewport=root.Q("generated-viewport");
+            Require(viewport.style.width.value.value==800 && viewport.parent.style.width.value.value==400,"Viewport/zoom wrong");
+            root.Query<Toggle>().ToList().Single(t=>t.label=="Compare runtime").value=true;
+            Rebuild(window);
+            Require(root.Q("runtime-viewport")?.childCount>0,"Live comparison missing");
+            root.Query<Toggle>().ToList().Single(t=>t.label=="Compare runtime").value=false;
+            Rebuild(window);
+            Require(root.Q("runtime-pane")==null,"Live comparison not removed");
+            picker.value=picker.choices.Single(id=>picker.formatListItemCallback(id)=="LumaFlow / Welcome");
+            Rebuild(window);
+            Require(root.Q("generated-viewport").childCount>0,"Welcome factory failed");
+            UnityEngine.Object.DestroyImmediate(window); window=null;
+            Require(LumaFlowDiagnostics.CaptureActiveTrees().Count==baseline,"Preview leaked mounts");
+            window=ScriptableObject.CreateInstance<UxmlPreviewWindow>(); window.Show(); window.CreateGUI(); Rebuild(window);
+            Require(!window.rootVisualElement.Query<Toggle>().ToList().Single(t=>t.label=="Show on project startup").value,"Preference lost on reopening");
+            Require(window.rootVisualElement.Q("generated-viewport").childCount>0,"Saved source not restored");
+            UnityEngine.Object.DestroyImmediate(window);window=null;
+            perf=ScriptableObject.CreateInstance<GuiPerformanceWindow>();perf.Show();perf.CreateGUI();
+            CheckControls(perf,520,420);
+            CheckControls(perf,900,740);
+            Require(perf.rootVisualElement.Q("lumaflow-mount-host")!=null,"Performance UI is not LumaFlow");
+            perf.BeginCapture();Require(!perf.IsCapturing && !perf.HasRecorders,"Edit mode started recorders");
+            perf.CancelCapture();UnityEngine.Object.DestroyImmediate(perf);perf=null;
+            Require(LumaFlowDiagnostics.CaptureActiveTrees().Count==baseline,"Performance leaked mounts");
+            CheckSceneSetup();
+            Debug.Log("EDITOR_TOOLS_EDIT PASSED: "+checks+" checks; startup, automatic source/welcome, persisted checkbox, viewport/zoom, comparison, restoration, LumaFlow mounts, cleanup");
+            UxmlPreviewStartup.ShowOnStartup=preference;EditorPrefs.SetString(UxmlPreviewStartup.SourceKey,source);
+            EditorApplication.Exit(0);
+        } catch(Exception e) {
+            if(window!=null)UnityEngine.Object.DestroyImmediate(window);if(perf!=null)UnityEngine.Object.DestroyImmediate(perf);
+            UxmlPreviewStartup.ShowOnStartup=preference;EditorPrefs.SetString(UxmlPreviewStartup.SourceKey,source);
+            Debug.LogException(e);EditorApplication.Exit(1);
+        }
+    }
+    static void CheckSceneSetup() {
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        var method = typeof(SceneSetupValidation.AppBootstrap).GetMethod("CreateApplication")!;
+        var factory = LumaPreviewRegistry.RegisterBootstrap(method);
+        var source = "code:" + factory.Id;
+        var tree = UxmlPreviewGenerator.Generate(factory,out _);
+        var document = UxmlPreviewSceneSetup.Configure(tree,source,typeof(SceneSetupValidation.AppBootstrap));
+        Require(UxmlPreviewSceneSetup.InScene<Camera>().Length==1,"Missing auto-created camera");
+        Require(UxmlPreviewSceneSetup.FindBootstrap()!=null,"Missing auto-created AppBootstrap");
+        Require(document.panelSettings?.themeStyleSheet!=null,"Missing auto-created panel/theme");
+        Require(document.GetComponent<SceneSetupValidation.AppBootstrap>().Document==document,"Bootstrap document reference not wired");
+        var binding = document.GetComponent<UxmlPreviewBinding>();
+        Require(binding!=null && binding.SourceId==source,"Missing persisted scene connection");
+        Require(binding!.RuntimeTree==null,"Original runtime tree not preserved");
+        Require(UxmlPreviewSceneSetup.DiscoverSceneSource()==source,"Scene source not automatically discovered");
+        var again=UxmlPreviewSceneSetup.Configure(tree,source,typeof(SceneSetupValidation.AppBootstrap));
+        Require(again==document && UxmlPreviewSceneSetup.InScene<UIDocument>().Length==1 && UxmlPreviewSceneSetup.InScene<Camera>().Length==1,"Repeated setup duplicated objects");
+        var panel=document.panelSettings;
+        UxmlPreviewSceneSync.RestoreRuntimeTrees();
+        Require(document.visualTreeAsset==null,"Runtime still contains editor snapshot");
+        UxmlPreviewSceneSync.Apply(source,tree);
+        Require(document.visualTreeAsset==tree,"Edit mode snapshot not restored");
+        var window=ScriptableObject.CreateInstance<UxmlPreviewWindow>();window.Show();window.CreateGUI();Rebuild(window);
+        Require(window.rootVisualElement.Q("generated-viewport").Query<Label>().ToList().Any(label=>label.text=="Scene application"),"Window did not adopt scene source");
+        window.Close();
+        Require(document.panelSettings==panel,"Existing PanelSettings replaced");
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+        var target=new GameObject("Existing application");
+        var bootstrap=target.AddComponent<SceneSetupValidation.AppBootstrap>();
+        var existing=target.AddComponent<UIDocument>();
+        var original=ScriptableObject.CreateInstance<VisualTreeAsset>();
+        existing.visualTreeAsset=original;existing.panelSettings=panel;
+        var camera=new GameObject("Existing camera").AddComponent<Camera>();
+        UxmlPreviewSceneSetup.Configure(tree,source);
+        Require(existing.GetComponent<UxmlPreviewBinding>().RuntimeTree==original,"Original document asset lost");
+        Require(bootstrap.Document==existing && existing.panelSettings==panel,"Existing components not connected");
+        Undo.FlushUndoRecordObjects();Undo.PerformUndo();
+        Require(existing.GetComponent<UxmlPreviewBinding>()==null && existing.visualTreeAsset==original,"Setup Undo did not restore existing scene");
+        Require(UxmlPreviewSceneSetup.InScene<Camera>().Single()==camera,"Existing camera replaced");
+        window=ScriptableObject.CreateInstance<UxmlPreviewWindow>();window.Show();window.CreateGUI();Rebuild(window);
+        Require(existing.GetComponent<UxmlPreviewBinding>()!=null && existing.visualTreeAsset==tree,"Existing application was not automatically connected on opening UXML");
+        window.Close();
+        UnityEngine.Object.DestroyImmediate(original);
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+        target=new GameObject("Legacy manual snapshot");
+        target.AddComponent<SceneSetupValidation.AppBootstrap>();
+        existing=target.AddComponent<UIDocument>();existing.visualTreeAsset=tree;
+        UxmlPreviewSceneSetup.Configure(tree,source);
+        Require(existing.GetComponent<UxmlPreviewBinding>().RuntimeTree==null,"Legacy manual snapshot would duplicate runtime UI");
+    }
+    public static void RunPerformance() {
+        SessionState.SetBool("EditorTools.Perf",true);
+        EditorApplication.isPlaying=true;
+    }
+    static void SetupPerformance() {
+        try {
+            SessionState.EraseBool("EditorTools.Perf");
+            performance=ScriptableObject.CreateInstance<GuiPerformanceWindow>();performance.Show();performance.CreateGUI();
+            performance.rootVisualElement.Q<PopupField<int>>().value=60;
+            var automatic=performance.rootVisualElement.Query<Toggle>().ToList().Single(t=>t.label=="Capture automatically on entering Play Mode");
+            automatic.value=false;automatic.value=true;
+            deadline=EditorApplication.timeSinceStartup+35;EditorApplication.update+=CheckPerformance;
+        }catch(Exception e){Fail(e);}
+    }
+    static void CheckPerformance() {
+        try {
+            if(EditorApplication.timeSinceStartup>deadline)throw new Exception("Performance test timeout phase="+phase);
+            if(phase==0) {
+                if(performance!.IsCapturing){sawCapture=true;return;}
+                var text=performance.rootVisualElement.Query<Label>().ToList().Select(l=>l.text).FirstOrDefault(t=>t!=null&&t.StartsWith("EDITOR ·"));
+                if(text==null)return;
+                Require(sawCapture,"Automatic capture never started");
+                Require(text.Contains("n=60"),"Automatic report sample count wrong: "+text);
+                Require(!performance.HasRecorders,"Completed capture leaked recorders");
+                performance.BeginCapture();Require(performance.IsCapturing,"Manual capture not started");
+                performance.CancelCapture();Require(!performance.IsCapturing&&!performance.HasRecorders,"Cancel leaked recorders");
+                performance.BeginCapture();EditorApplication.isPaused=true;phase=1;return;
+            }
+            Require(!performance!.IsCapturing&&!performance.HasRecorders,"Pause leaked recorders");
+            EditorApplication.isPaused=false;
+            performance.BeginCapture();Require(performance.IsCapturing,"Restart after pause failed");
+            performance.Close();Require(!performance.HasRecorders,"Closing window leaked recorders");
+            performance=null;EditorApplication.update-=CheckPerformance;
+            SessionState.SetBool("EditorTools.Done",true);EditorApplication.isPlaying=false;
+        }catch(Exception e){Fail(e);}
+    }
+    static void Fail(Exception e){EditorApplication.update-=CheckPerformance;if(performance!=null)performance.Close();Debug.LogException(e);EditorApplication.Exit(1);}
+}
+
+// This fixture-only type is not installed in consumers or the working project.
+namespace SceneSetupValidation {
+    public sealed class AppBootstrap : MonoBehaviour {
+        [SerializeField] private UIDocument? _document = null;
+        public UIDocument? Document => _document;
+        public static Widget CreateApplication() => new Text("Scene application");
+    }
+}

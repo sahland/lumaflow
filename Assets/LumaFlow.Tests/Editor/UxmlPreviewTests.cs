@@ -109,16 +109,16 @@ namespace LumaFlow.Editor.Tests {
                 window.Show();
                 window.CreateGUI();
                 var root = window.rootVisualElement;
-                Assert.That(root.Q<PopupField<string>>("code-preview").choices, Does.Contain("Tests / Code preview"));
+                var sources = root.Query<PopupField<string>>().ToList().First();
+                Assert.That(sources.choices.Select(sources.formatListItemCallback), Does.Contain("Tests / Code preview"));
                 var viewport = root.Q<VisualElement>("generated-viewport");
-                root.Q<IntegerField>("viewport-width").value = 800;
-                root.Q<PopupField<string>>("viewport-zoom").value = "50%";
+                window.SetPreviewViewport(800, 480, 50);
                 Assert.That(viewport.style.width.value.value, Is.EqualTo(800));
                 Assert.That(viewport.parent.style.width.value.value, Is.EqualTo(400));
-                Assert.That(root.Q<VisualElement>("runtime-pane").style.display.value, Is.EqualTo(DisplayStyle.None));
-                root.Q<ToolbarToggle>("compare-runtime").value = true;
-                Assert.That(root.Q<VisualElement>("runtime-pane").style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                root.Q<IntegerField>("viewport-width").value = -1;
+                Assert.That(root.Q<VisualElement>("runtime-pane"), Is.Null);
+                root.Query<Toggle>().ToList().Single(toggle => toggle.label == "Compare runtime").value = true;
+                Assert.That(root.Q<VisualElement>("runtime-pane"), Is.Not.Null);
+                window.SetPreviewViewport(-1, 480, 50);
                 Assert.That(viewport.style.width.value.value, Is.EqualTo(100));
             } finally {
                 UnityEngine.Object.DestroyImmediate(window);

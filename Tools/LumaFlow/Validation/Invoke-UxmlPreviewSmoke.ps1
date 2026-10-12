@@ -29,11 +29,14 @@ $previewSources = @(
     Get-ChildItem "$package/Editor/UxmlPreview*.cs" | ForEach-Object FullName
     "$package/Editor/LumaPreviewAttribute.cs"
     "$package/Editor/AssemblyInfo.cs"
+    "$package/Editor/EditorToolWidgets.cs"
+    "$package/Editor/GuiPerformanceWindow.cs"
 )
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Preview.Compile.dll" $references $previewSources
 if ($LASTEXITCODE) { throw 'Preview compilation failed.' }
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Editor.Tests.dll" $references `
-    "-r:$editor/LumaFlow.Preview.Compile.dll" "-r:$($nunit.FullName)" "$root/Assets/LumaFlow.Tests/Editor/UxmlPreviewTests.cs"
+    "-r:$editor/LumaFlow.Preview.Compile.dll" "-r:$($nunit.FullName)" "$root/Assets/LumaFlow.Tests/Editor/UxmlPreviewTests.cs" `
+    "$root/Assets/LumaFlow.Tests/Editor/EditorToolStartupTests.cs"
 if ($LASTEXITCODE) { throw 'Preview test compilation failed.' }
 Copy-Item $nunit.FullName $editor
 Copy-Item "$PSScriptRoot/UxmlPreviewSmoke.cs.txt" "$editor/UxmlPreviewSmoke.cs"

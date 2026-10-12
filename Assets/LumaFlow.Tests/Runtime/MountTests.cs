@@ -4840,13 +4840,14 @@ namespace LumaFlow.Runtime.Tests {
             var root = new VisualElement();
             using var mount = Framework.Mount(new Checkbox(new State<bool>(true), enabled: false, style: style), root);
             var checkbox = (UnityEngine.UIElements.Toggle)root[0][0];
-            var input = checkbox.Q<VisualElement>(className: "unity-toggle__input")
-                ?? checkbox.Q<VisualElement>(className: "unity-base-field__input");
+            var input = checkbox.Q<VisualElement>(className: "unity-toggle__checkmark");
 
             Assert.That(input, Is.Not.Null);
             Assert.That(observed, Is.EqualTo(WidgetStates.Selected | WidgetStates.Disabled));
             Assert.That(input.style.backgroundColor.value, Is.EqualTo(Color.green));
             Assert.That(input.style.width.value.value, Is.EqualTo(22f));
+            Assert.That(checkbox.Q<VisualElement>(className: "unity-toggle__input").style.backgroundColor.keyword,
+                Is.EqualTo(StyleKeyword.Null), "The layout row must not become the checkbox surface.");
         }
 
         [Test]
@@ -4975,8 +4976,7 @@ namespace LumaFlow.Runtime.Tests {
             switchNode.Mount(parent: null, context, root);
             sliderNode.Mount(parent: null, context, root);
 
-            var checkboxInput = ((UnityEngine.UIElements.Toggle)root[0]).Q<VisualElement>(className: "unity-toggle__input")
-                ?? ((UnityEngine.UIElements.Toggle)root[0]).Q<VisualElement>(className: "unity-base-field__input");
+            var checkboxInput = ((UnityEngine.UIElements.Toggle)root[0]).Q<VisualElement>(className: "unity-toggle__checkmark");
             var radioInput = ((RadioButton)root[1]).Q<VisualElement>(className: "unity-radio-button__input");
             var sliderTrack = ((UnityEngine.UIElements.Slider)root[3]).Q<VisualElement>(
                 className: UnityEngine.UIElements.Slider.trackerUssClassName);
@@ -6494,8 +6494,7 @@ namespace LumaFlow.Runtime.Tests {
                 root);
             var button = (UnityEngine.UIElements.Button)root[0][0];
             var checkbox = (UnityEngine.UIElements.Toggle)button[0];
-            var input = checkbox.Q<VisualElement>(className: "unity-toggle__input")
-                ?? checkbox.Q<VisualElement>(className: "unity-base-field__input");
+            var input = checkbox.Q<VisualElement>(className: "unity-toggle__checkmark");
 
             Assert.That(input, Is.Not.Null);
             Assert.That(input!.style.width.value.value, Is.EqualTo(27f));
