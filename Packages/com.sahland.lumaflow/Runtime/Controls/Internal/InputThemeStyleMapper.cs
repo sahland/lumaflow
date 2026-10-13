@@ -5,11 +5,21 @@ using UnityEngine.UIElements;
 namespace LumaFlow {
 
     internal static class InputThemeStyleMapper {
+        private static VectorImage? _checkboxCheckmark;
         public static void ApplyDropdown<T>(BaseField<T> field, ThemeData? theme, DropdownStyle? style, WidgetStates states, TextScaler textScaler = default) {
             if (theme is not null) ApplyLabel(field, theme, textScaler);
             var input = field.Q<VisualElement>(className: "unity-base-field__input") ?? field;
+            if (theme is not null || style is not null) input.style.backgroundImage = new StyleBackground(default(Background));
             input.style.backgroundColor = style?.ResolveBackground(states) is { } background ? background : StyleKeyword.Null;
             input.style.color = style?.ResolveForeground(states) is { } foreground ? foreground : StyleKeyword.Null;
+            // Popup text has its own Editor USS color; parent color does not override it.
+            var popupText = input.Q<TextElement>();
+            if (popupText != null) {
+                if (style?.ResolveTypography(states) is { } textStyle) TextStyleMapper.Apply(popupText, textStyle, textScaler);
+                popupText.style.color = style?.ResolveForeground(states) is { } textColor ? textColor : StyleKeyword.Null;
+            }
+            var arrow = input.Q<VisualElement>(className: "unity-base-popup-field__arrow");
+            if (arrow != null) arrow.style.unityBackgroundImageTintColor = style?.ResolveForeground(states) is { } arrowColor ? arrowColor : StyleKeyword.Null;
             if (style?.ResolveBorder(states) is { } border) {
                 input.style.borderTopColor = border;
                 input.style.borderRightColor = border;
@@ -60,12 +70,32 @@ namespace LumaFlow {
 
         public static void ApplyCheckbox(UnityEngine.UIElements.Toggle checkbox, ThemeData? theme, CheckboxStyle? style, WidgetStates states, TextScaler textScaler = default) {
             if (theme is not null) ApplyLabel(checkbox, theme, textScaler);
+            // A checkbox is not an Inspector field: keep the indicator before its label.
+            checkbox.style.flexDirection = FlexDirection.RowReverse;
+            checkbox.style.justifyContent = Justify.FlexEnd;
+            checkbox.style.minHeight = 24;
+            var row = checkbox.Q<VisualElement>(className: "unity-toggle__input");
+            if (row != null) { row.style.flexGrow = 0; row.style.flexShrink = 0; row.style.alignSelf = UnityEngine.UIElements.Align.Center; }
+            checkbox.labelElement.style.minWidth = 0;
+            checkbox.labelElement.style.width = StyleKeyword.Auto;
+            checkbox.labelElement.style.flexGrow = 1;
+            checkbox.labelElement.style.flexShrink = 1;
+            checkbox.labelElement.style.marginLeft = 8;
+            checkbox.labelElement.style.marginRight = 0;
+            checkbox.labelElement.style.alignSelf = UnityEngine.UIElements.Align.Center;
             // The input is a flex row containing the indicator, not its visual surface.
             // Painting/sizing that row produces a full-width colored bar in Editor panels.
             var input = checkbox.Q<VisualElement>(className: "unity-toggle__checkmark");
             if (input is null) return;
             var themedStyle = theme?.CheckboxTheme.Style;
             var selected = (states & WidgetStates.Selected) != 0;
+            // Unity's Editor skin paints a complete checkbox texture over the fill.
+            // Use our shared vector glyph instead, in both Editor and Player panels.
+            if (selected && _checkboxCheckmark == null)
+                _checkboxCheckmark = UnityEngine.Resources.Load<VectorImage>(LumaIcons.Check.ResourceId);
+            input.style.backgroundImage = selected && _checkboxCheckmark != null
+                ? new StyleBackground(_checkboxCheckmark) : new StyleBackground(default(Background));
+            input.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
             var fill = style?.ResolveFillColor(states)
                 ?? themedStyle?.ResolveFillColor(states)
                 ?? (selected ? theme?.Colors.Primary ?? UnityEngine.Color.blue : theme?.Colors.Surface ?? UnityEngine.Color.white);

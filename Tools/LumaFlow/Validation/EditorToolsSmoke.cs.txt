@@ -47,7 +47,15 @@ public static class EditorToolsValidation {
             var mark = toggle.Q(className: "unity-toggle__checkmark");
             Require(input.resolvedStyle.backgroundColor.a == 0, "Checkbox paints the whole input row: " + toggle.label);
             Require(mark.worldBound.width >= 10 && mark.worldBound.width <= 32, "Checkbox indicator is not compact");
+            Require(toggle.value ? mark.resolvedStyle.backgroundImage.vectorImage != null
+                : mark.resolvedStyle.backgroundImage.vectorImage == null && mark.resolvedStyle.backgroundImage.texture == null,
+                "Checkbox indicator depends on the Unity skin: " + toggle.label);
+            Require(mark.resolvedStyle.backgroundColor == (toggle.value ? EditorToolWidgets.Theme.Colors.Primary : EditorToolWidgets.Surface),
+                "Checkbox fill does not match the LumaFlow palette: " + toggle.label);
+            Require(mark.worldBound.xMax <= toggle.labelElement.worldBound.xMin, "Checkbox indicator is not before its label: " + toggle.label);
         }
+        foreach (var text in root.Query<TextElement>(className: "unity-base-popup-field__text").ToList())
+            Require(text.resolvedStyle.color == EditorToolWidgets.Ink, "Dropdown text has unreadable skin color: " + text.text);
         foreach (var field in root.Query<UnityEngine.UIElements.TextField>().ToList()) {
             var input = field.Q(className: UnityEngine.UIElements.TextField.inputUssClassName);
             Require(input.worldBound.width >= 60, "Text input clipped at width " + width + ": " + field.label);

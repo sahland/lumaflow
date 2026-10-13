@@ -141,6 +141,122 @@ namespace LumaFlow.Editor.Tests {
         }
 
         [Test]
+        public void ExportSettlesAnimationsWithoutCompletionCallbacks() {
+            var calls = 0;
+            var widget = new AnimatedStyle<float>(
+                new TweenAnimationBuilder<float>(new FloatTween(0f, 1f), TimeSpan.FromSeconds(1),
+                    value => new Text(value == 1f ? "Settled" : "Hidden"),
+                    onEnd: () => calls++, behavior: AnimationBehavior.Preserve),
+                new FloatTween(0f, 1f), TimeSpan.FromSeconds(1), AnimatedStyleProperties.Opacity,
+                onEnd: () => calls++, behavior: AnimationBehavior.Preserve);
+            var first = UxmlPreviewExporter.Export(widget, "Preview.uss");
+            Assert.That(first.Uxml, Does.Contain("Settled"));
+            Assert.That(first.Uss, Does.Contain("opacity: 1"));
+            Assert.That(UxmlPreviewExporter.Export(widget, "Preview.uss"), Is.EqualTo(first));
+            Assert.That(calls, Is.Zero);
+
+            // Export must not leak its snapshot mode into a subsequent runtime mount.
+            var root = new VisualElement();
+            using var mount = global::LumaFlow.LumaFlow.Mount(widget, root);
+            Assert.That(root.Q<Label>().text, Is.EqualTo("Hidden"));
+            Assert.That(root[0].style.opacity.value, Is.Zero);
+        }
+
+        [Test]
+        public void LivePreviewSupportsCustomNativeAndReleasesItBeforeRuntime() {
+            var globalEvents = typeof(EditorApplication).GetField("globalEventHandler",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+            var previousHandler = globalEvents?.GetValue(null);
+            var gameObject = new GameObject("Live preview test");
+            var panel = ScriptableObject.CreateInstance<PanelSettings>();
+            var native = new PreviewNativeLabel { text = "Custom renderer" };
+            try {
+                var document = gameObject.AddComponent<UIDocument>();
+                document.panelSettings = panel;
+                var binding = gameObject.AddComponent<UxmlPreviewBinding>();
+                binding.Configure("code:Tests.Live", binding, null);
+                UxmlPreviewSceneSync.ApplyLive(binding.SourceId, () => new Native(native));
+                Assert.That(UxmlPreviewSceneSync.LivePreviewCount, Is.EqualTo(1));
+                Assert.That(document.rootVisualElement.Q<PreviewNativeLabel>(), Is.SameAs(native));
+                Assert.That(native.enabledSelf, Is.True, "Preview must not grey out controls.");
+                UxmlPreviewSceneSync.RestoreRuntimeTrees();
+                Assert.That(UxmlPreviewSceneSync.LivePreviewCount, Is.Zero);
+                Assert.That(native.parent, Is.Null);
+                Assert.That(document.rootVisualElement.Q("lumaflow-live-preview"), Is.Null);
+                Assert.That(document.visualTreeAsset, Is.Null);
+                Assert.That(globalEvents?.GetValue(null), Is.EqualTo(previousHandler), "Game input hook must be released with the last live preview.");
+            } finally {
+                UxmlPreviewSceneSync.RestoreRuntimeTrees();
+                UnityEngine.Object.DestroyImmediate(gameObject);
+                UnityEngine.Object.DestroyImmediate(panel);
+            }
+        }
+
+        private sealed class PreviewNativeLabel : Label { }
+
+        [Test]
+        public void GamePreviewCheckboxDisablesSceneMountButKeepsWindowPreview() {
+            var previous = UxmlPreviewSceneSync.GamePreviewEnabled;
+            var gameObject = new GameObject("Optional Game preview");
+            var panel = ScriptableObject.CreateInstance<PanelSettings>();
+            var window = ScriptableObject.CreateInstance<UxmlPreviewWindow>();
+            var originalTree = ScriptableObject.CreateInstance<VisualTreeAsset>();
+            var previewTree = ScriptableObject.CreateInstance<VisualTreeAsset>();
+            try {
+                var document = gameObject.AddComponent<UIDocument>();
+                document.panelSettings = panel;
+                var binding = gameObject.AddComponent<UxmlPreviewBinding>();
+                binding.Configure("code:Tests.OptionalGame", binding, originalTree);
+                UxmlPreviewSceneSync.GamePreviewEnabled = true;
+                UxmlPreviewSceneSync.ApplyLive(binding.SourceId, () => new Text("Game preview"));
+                Assert.That(document.rootVisualElement.Q<Label>().text, Is.EqualTo("Game preview"));
+                window.Show(); window.CreateGUI();
+                var checkbox = window.rootVisualElement.Query<Toggle>().ToList().Single(item => item.label == "Preview in Game View");
+                Assert.That(checkbox.value, Is.True);
+                checkbox.value = false;
+                Assert.That(UxmlPreviewSceneSync.GamePreviewEnabled, Is.False);
+                Assert.That(UxmlPreviewSceneSync.LivePreviewCount, Is.Zero);
+                Assert.That(document.rootVisualElement.Q("lumaflow-live-preview"), Is.Null);
+                Assert.That(document.visualTreeAsset, Is.SameAs(originalTree));
+                UxmlPreviewSceneSync.Apply(binding.SourceId, previewTree);
+                Assert.That(document.visualTreeAsset, Is.SameAs(originalTree), "Generated UXML must also respect the Game preview switch.");
+                Assert.That(window.rootVisualElement.Q("generated-viewport"), Is.Not.Null);
+                UxmlPreviewSceneSync.ApplyLive(binding.SourceId, () => throw new Exception("Disabled Game factory must not run"));
+                window.CreateGUI();
+                Assert.That(window.rootVisualElement.Query<Toggle>().ToList().Single(item => item.label == "Preview in Game View").value, Is.False);
+                Assert.That(window.rootVisualElement.Query<UnityEngine.UIElements.Button>().ToList().Any(item => item.text == "Auto setup scene"), Is.True);
+                UxmlPreviewSceneSync.GamePreviewEnabled = true;
+                UxmlPreviewSceneSync.ApplyLive(binding.SourceId, () => new Text("Restored Game preview"));
+                Assert.That(document.rootVisualElement.Q<Label>().text, Is.EqualTo("Restored Game preview"));
+            } finally {
+                UnityEngine.Object.DestroyImmediate(window);
+                UxmlPreviewSceneSync.RestoreRuntimeTrees();
+                UnityEngine.Object.DestroyImmediate(gameObject);
+                UnityEngine.Object.DestroyImmediate(panel);
+                UnityEngine.Object.DestroyImmediate(originalTree);
+                UnityEngine.Object.DestroyImmediate(previewTree);
+                UxmlPreviewSceneSync.GamePreviewEnabled = previous;
+            }
+        }
+
+        [Test]
+        public void LivePreviewDoesNotBlockLocalNavigationEvents() {
+            var window = ScriptableObject.CreateInstance<InputTestWindow>();
+            try {
+                window.Show();
+                var root = window.rootVisualElement;
+                var calls = 0;
+                using var mount = UxmlPreviewLiveSnapshot.Mount(new global::LumaFlow.Button("Local navigation", () => calls++), root, new Vector2(640, 480));
+                var button = root.Q<UnityEngine.UIElements.Button>();
+                using var submit = NavigationSubmitEvent.GetPooled();
+                submit.target = button;
+                button.SendEvent(submit);
+                Assert.That(calls, Is.EqualTo(1));
+            } finally { UnityEngine.Object.DestroyImmediate(window); }
+        }
+        private sealed class InputTestWindow : EditorWindow { }
+
+        [Test]
         public void ExportRejectsNativeAndReleasesItsBorrowedElement() {
             var element = new VisualElement();
             Assert.Throws<NotSupportedException>(() => UxmlPreviewExporter.Export(new Native(element), "Preview.uss"));

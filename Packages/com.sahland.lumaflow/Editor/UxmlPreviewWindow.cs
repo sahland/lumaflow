@@ -25,13 +25,16 @@ namespace LumaFlow.Editor {
         private readonly State<bool> _compareValue = new(false);
         private readonly State<bool> _autoValue = new(true);
         private readonly State<bool> _startupValue = new(true);
+        private readonly State<bool> _gamePreviewValue = new(true);
         private readonly State<string> _status = new("Preparing preview…");
+        private readonly State<string> _generatedTitle = new("Generated UXML · visual snapshot");
         private readonly List<PreviewChoice> _choices = new();
         private UnityEditor.Editor? _factoryEditor;
         private IMGUIContainer? _inspector;
         private string? _outputFolder;
         private MountHandle? _uiMount;
         private MountHandle? _mount;
+        private MountHandle? _generatedMount;
         private VisualElement? _runtime;
         private VisualElement? _generated;
         private Func<VisualElement>? _createRuntimeViewport;
@@ -42,10 +45,10 @@ namespace LumaFlow.Editor {
         private bool _connectExisting;
 
         [MenuItem("Tools/LumaFlow/UXML")]
-        [MenuItem("Tools/LumaFlow/UXML Preview (Experimental)")]
         public static void Open() => GetWindow<UxmlPreviewWindow>("LumaFlow UXML");
 
         public void CreateGUI() {
+            _generatedMount?.Dispose(); _generatedMount = null;
             _mount?.Dispose(); _mount = null;
             _uiMount?.Dispose(); _uiMount = null;
             rootVisualElement.Clear();
@@ -69,6 +72,7 @@ namespace LumaFlow.Editor {
             _autoValue.Value = _autoRefresh;
             _compareValue.Value = _compare;
             _startupValue.Value = UxmlPreviewStartup.ShowOnStartup;
+            _gamePreviewValue.Value = UxmlPreviewSceneSync.GamePreviewEnabled;
             SyncViewportState();
             if (preferred == null) FitPreview();
             RefreshInspector();
@@ -88,29 +92,38 @@ namespace LumaFlow.Editor {
             }, gap: 16),
             new ReactiveBuilder<string>(_status, text => EditorToolWidgets.Hint(text)),
             new Expanded(new Row(new Widget[] {
-                new SizedBox(new ScrollView(BuildSettings()), width: 272),
+                new SizedBox(new ScrollView(BuildSettings()), width: 304),
                 new Expanded(new ReactiveBuilder<bool>(_compareValue, BuildPreviewArea))
             }, gap: 16))
         }, gap: 16), EdgeInsets.All(16)));
 
         private Widget BuildSettings() => new Column(new Widget[] {
-            new Button("Автонастройка сцены", AutoSetupScene),
-            EditorToolWidgets.Hint("Reuse or create UIDocument, AppBootstrap and Camera. View C# changes in Game without Play Mode."),
+            EditorToolWidgets.Card(new Column(new Widget[] {
+            new Text("Scene preview", EditorToolWidgets.Theme.Typography.Headline),
+            new Button("Auto setup scene", AutoSetupScene),
+            new Checkbox(_gamePreviewValue, label: "Preview in Game View", onChanged: value => {
+                UxmlPreviewSceneSync.GamePreviewEnabled = value;
+                QueueRebuild();
+            }),
+            EditorToolWidgets.Hint("Game preview is optional. This window works independently."),
+            }, gap: 12)),
+            EditorToolWidgets.Card(new Column(new Widget[] {
             new Text("Preview source", EditorToolWidgets.Theme.Typography.Headline),
             new Dropdown<string>(_sourceValue, _choices.Select(item => item.Id),
                 id => _choices.First(item => item.Id == id).Label,
                 onChanged: SelectSource),
-            EditorToolWidgets.Hint("Sources are discovered automatically. The welcome example works without scene setup."),
             new Native(() => _inspector = new IMGUIContainer(DrawFactoryInspector)),
             new Button("Edit factory C#", EditFactory, ButtonVariant.Secondary),
+            }, gap: 12)),
+            EditorToolWidgets.Card(new Column(new Widget[] {
             new Text("Viewport", EditorToolWidgets.Theme.Typography.Headline),
             new Dropdown<string>(_presetValue, new[] { "Custom", "Phone 390×844", "Tablet 768×1024", "Desktop 1920×1080" },
                 value => value, onChanged: ApplyPreset),
             new Row(new Widget[] {
-                new SizedBox(EditorToolWidgets.Field("Width", new TextField(_widthValue,
-                    onSubmitted: _ => ApplyDimensions())), width: 120),
-                new SizedBox(EditorToolWidgets.Field("Height", new TextField(_heightValue,
-                    onSubmitted: _ => ApplyDimensions())), width: 120)
+                new Expanded(EditorToolWidgets.Field("Width", new TextField(_widthValue,
+                    onSubmitted: _ => ApplyDimensions()))),
+                new Expanded(EditorToolWidgets.Field("Height", new TextField(_heightValue,
+                    onSubmitted: _ => ApplyDimensions())))
             }, gap: 8),
             new Row(new Widget[] {
                 new Expanded(new Button("Apply size", ApplyDimensions, ButtonVariant.Secondary)),
@@ -118,11 +131,17 @@ namespace LumaFlow.Editor {
             }, gap: 8),
             EditorToolWidgets.Field("Display zoom", new Dropdown<int>(_zoomValue, new[] { 25, 50, 75, 100 }, value => value + "%",
                 onChanged: value => { _zoomPercent = value; ApplyViewport(); })),
+            }, gap: 12)),
+            EditorToolWidgets.Card(new Column(new Widget[] {
+            new Text("Behaviour", EditorToolWidgets.Theme.Typography.Headline),
             new Checkbox(_autoValue, label: "Auto refresh", onChanged: value => { _autoRefresh = value; if (value) QueueRebuild(); }),
             new Checkbox(_compareValue, label: "Compare runtime", onChanged: SetCompare),
             new Checkbox(_startupValue, label: "Show on project startup",
                 onChanged: value => UxmlPreviewStartup.ShowOnStartup = value),
             new Button("Generate now", QueueRebuild),
+            }, gap: 10)),
+            EditorToolWidgets.Card(new Column(new Widget[] {
+            new Text("Generated assets", EditorToolWidgets.Theme.Typography.Headline),
             new Button("Bind selected UIDocument", BindSelectedDocument, ButtonVariant.Secondary),
             EditorToolWidgets.Hint("Binding is explicit and Undoable. Existing scene documents are never overwritten on startup."),
             new Button("New demo asset", CreateDemo, ButtonVariant.Secondary),
@@ -133,6 +152,7 @@ namespace LumaFlow.Editor {
             new Button("Show generated files", () => {
                 if (_outputFolder != null) EditorUtility.RevealInFinder(Path.GetFullPath(_outputFolder));
             }, ButtonVariant.Secondary)
+            }, gap: 12)),
         }, gap: 12);
 
         private Widget BuildPreviewArea(bool compare) {
@@ -144,7 +164,8 @@ namespace LumaFlow.Editor {
 
         private Widget BuildPane(string title, bool runtime) => SizedBox.Expand(EditorToolWidgets.Card(
             SizedBox.Expand(new Column(new Widget[] {
-                new Text(title, EditorToolWidgets.Theme.Typography.Headline),
+                runtime ? new Text(title, EditorToolWidgets.Theme.Typography.Headline)
+                    : new ReactiveBuilder<string>(_generatedTitle, value => new Text(value, EditorToolWidgets.Theme.Typography.Headline)),
                 new Expanded(new Native(runtime
                     ? (_createRuntimeViewport ??= () => CreateViewport(true))
                     : (_createGeneratedViewport ??= () => CreateViewport(false))))
@@ -299,7 +320,10 @@ namespace LumaFlow.Editor {
         private void RefreshScene() { if (this != null) CreateGUI(); }
 
         private void OnPlayModeChanged(PlayModeStateChange state) {
-            if (state == PlayModeStateChange.ExitingEditMode) _status.Value = "Preview generation is paused during Play Mode.";
+            if (state == PlayModeStateChange.ExitingEditMode) {
+                _generatedMount?.Dispose(); _generatedMount = null;
+                _status.Value = "Preview generation is paused during Play Mode.";
+            }
             if (state == PlayModeStateChange.EnteredEditMode) QueueRebuild();
         }
 
@@ -318,6 +342,7 @@ namespace LumaFlow.Editor {
         }
 
         private void OnDisable() {
+            _generatedMount?.Dispose(); _generatedMount = null;
             Undo.undoRedoPerformed -= AutoRebuild;
             EditorApplication.projectChanged -= QueueSourceRefresh;
             EditorApplication.playModeStateChanged -= OnPlayModeChanged;
@@ -361,6 +386,7 @@ namespace LumaFlow.Editor {
                 _mount?.Dispose();
                 _mount = null;
                 _runtime?.Clear();
+                _generatedMount?.Dispose(); _generatedMount = null;
                 _generated.Clear();
                 return;
             }
@@ -373,12 +399,14 @@ namespace LumaFlow.Editor {
                 _mount?.Dispose();
                 _mount = null;
                 _runtime?.Clear();
+                _generatedMount?.Dispose(); _generatedMount = null;
                 _generated.Clear();
                 if (_compare) {
                     var widget = _definition != null ? _definition.CreatePreviewWidget() : codeFactory!.CreateWidget();
                     _mount = global::LumaFlow.LumaFlow.Mount(widget, _runtime!);
                 }
                 tree.CloneTree(_generated);
+                _generatedTitle.Value = "Generated UXML · visual snapshot";
                 var sourceId = CurrentStatusId(codeFactory);
                 UxmlPreviewSceneSync.Apply(sourceId, tree);
                 if (_connectExisting && _sceneSourceId == sourceId) {
@@ -390,6 +418,33 @@ namespace LumaFlow.Editor {
                 UxmlPreviewStatus.ReportSuccess(CurrentStatusId(codeFactory));
                 _status.Value = "Updated " + DateTime.Now.ToString("HH:mm:ss") + " · visual snapshot (no callbacks)";
 
+            } catch (NotSupportedException) {
+                try {
+                    Func<Widget> factory = () => _definition != null ? _definition.CreatePreviewWidget() : codeFactory!.CreateWidget();
+                    var host = new VisualElement();
+                    var mount = UxmlPreviewLiveSnapshot.Mount(factory(), host, new Vector2(_viewportWidth, _viewportHeight));
+                    _generatedMount?.Dispose(); _generatedMount = mount;
+                    _mount?.Dispose(); _mount = null;
+                    _runtime?.Clear();
+                    if (_compare) _mount = UxmlPreviewLiveSnapshot.Mount(factory(), _runtime!, new Vector2(_viewportWidth, _viewportHeight));
+                    _generated.Clear(); _generated.Add(host);
+                    _generatedTitle.Value = "Live C# · edit-mode preview";
+                    _outputFolder = null;
+                    var sourceId = CurrentStatusId(codeFactory);
+                    if (_connectExisting && _sceneSourceId == sourceId) {
+                        var existing = UxmlPreviewSceneSetup.FindDocument(UxmlPreviewSceneSetup.FindBootstrap());
+                        if (existing != null && existing.GetComponent<UxmlPreviewBinding>() == null)
+                            UxmlPreviewSceneSetup.Configure(null, sourceId);
+                        _connectExisting = false;
+                    }
+                    UxmlPreviewSceneSync.ApplyLive(sourceId, factory);
+                    UxmlPreviewStatus.ReportSuccess(sourceId);
+                    _status.Value = "Live C# preview · custom controls are rendered directly; UXML export is unavailable for this source.";
+                } catch (Exception liveException) {
+                    _status.Value = "Live preview failed: " + liveException.Message;
+                    UxmlPreviewStatus.ReportFailure(CurrentStatusId(codeFactory), CurrentSourceLabel(codeFactory), liveException);
+                    Debug.LogException(liveException);
+                }
             } catch (Exception exception) {
                 _status.Value = "Preview failed: " + exception.Message;
                 UxmlPreviewStatus.ReportFailure(CurrentStatusId(codeFactory), CurrentSourceLabel(codeFactory), exception);
@@ -419,11 +474,17 @@ namespace LumaFlow.Editor {
                 var factory = LumaPreviewRegistry.RegisterBootstrap(method);
                 _definition = null; _codeFactoryId = factory.Id;
                 CreateGUI();
-                var tree = UxmlPreviewGenerator.Generate(factory, out var path);
+                VisualTreeAsset? tree = null;
+                string? path = null;
+                try { tree = UxmlPreviewGenerator.Generate(factory, out path); }
+                catch (NotSupportedException) { /* Custom controls use the explicit live-preview path. */ }
                 var document = UxmlPreviewSceneSetup.Configure(tree, "code:" + factory.Id, type);
-                _outputFolder = Path.GetDirectoryName(path)!.Replace('\\', '/');
+                if (tree == null) UxmlPreviewSceneSync.ApplyLive("code:" + factory.Id, factory.CreateWidget);
+                _outputFolder = path == null ? null : Path.GetDirectoryName(path)!.Replace('\\', '/');
                 Selection.activeGameObject = document.gameObject;
-                _status.Value = "Scene connected · open Game without Play Mode. Save the scene to keep setup; Undo restores the previous configuration.";
+                _status.Value = UxmlPreviewSceneSync.GamePreviewEnabled
+                    ? "Scene connected · open Game without Play Mode. Save the scene to keep setup; Undo restores the previous configuration."
+                    : "Scene connected · Game preview is disabled. Preview remains in this window. Save the scene to keep the connection.";
             } catch (Exception exception) {
                 _status.Value = "Auto setup: " + exception.Message;
                 Debug.LogWarning(_status.Value);
@@ -431,6 +492,10 @@ namespace LumaFlow.Editor {
         }
 
         private void BindSelectedDocument() {
+            if (!UxmlPreviewSceneSync.GamePreviewEnabled) {
+                _status.Value = "Enable Preview in Game View before binding a scene document.";
+                return;
+            }
             if (EditorApplication.isPlayingOrWillChangePlaymode) {
                 _status.Value = "Stop Play Mode before binding a scene preview.";
                 return;

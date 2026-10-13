@@ -31,7 +31,7 @@ namespace LumaFlow {
             _currentValue = _animation.Current;
             Rebuild(widget);
             if (_animation.IsRunning) StartTicker();
-            else if (completed && hasDistance) widget.OnEnd?.Invoke();
+            else if (completed && hasDistance && !AnimationSnapshotScope.IsActive) widget.OnEnd?.Invoke();
             Bindings.Add(StopTicker);
             Bindings.Add(_animation.Cancel);
         }

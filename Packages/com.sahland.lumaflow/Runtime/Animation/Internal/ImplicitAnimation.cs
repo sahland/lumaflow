@@ -4,6 +4,20 @@ using System;
 using System.Collections.Generic;
 
 namespace LumaFlow {
+    // Export is synchronous. Keep this separate from accessibility's reduced-motion
+    // preference: even Preserve animations must settle, without completion callbacks.
+    internal sealed class AnimationSnapshotScope : IDisposable {
+        [ThreadStatic] private static int _depth;
+        private bool _disposed;
+        internal static bool IsActive => _depth > 0;
+        internal AnimationSnapshotScope() => _depth++;
+        public void Dispose() {
+            if (_disposed) return;
+            _disposed = true;
+            _depth--;
+        }
+    }
+
     internal readonly struct AnimationSample<T> {
         public AnimationSample(T value, bool completed) {
             Value = value;
@@ -44,6 +58,7 @@ namespace LumaFlow {
             _spec = spec;
             _startedAt = nowSeconds;
             if (EqualityComparer<T>.Default.Equals(from, target)
+                || AnimationSnapshotScope.IsActive
                 || (disableAnimations && spec.Behavior == AnimationBehavior.Normal)) {
                 _current = target;
                 IsRunning = false;

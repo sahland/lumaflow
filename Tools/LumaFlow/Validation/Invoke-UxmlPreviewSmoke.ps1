@@ -21,6 +21,9 @@ $plugins = Join-Path $output 'Assets/Plugins'
 New-Item -ItemType Directory -Path $editor, $plugins, "$output/ProjectSettings" | Out-Null
 Copy-Item "$root/ProjectSettings/ProjectVersion.txt" "$output/ProjectSettings/"
 $package = Join-Path $root 'Packages/com.sahland.lumaflow'
+$checkResources = Join-Path $output 'Assets/Resources/LumaFlowIcons'
+New-Item -ItemType Directory -Path $checkResources | Out-Null
+Copy-Item "$package/Runtime/Icons/Resources/LumaFlowIcons/check.svg", "$package/Runtime/Icons/Resources/LumaFlowIcons/check.svg.meta" $checkResources
 $runtimeSources = @(Get-ChildItem "$package/Runtime" -Recurse -Filter '*.cs' | ForEach-Object FullName)
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$plugins/LumaFlow.Runtime.dll" $references $runtimeSources
 if ($LASTEXITCODE) { throw 'Runtime compilation failed.' }
@@ -31,6 +34,7 @@ $previewSources = @(
     "$package/Editor/AssemblyInfo.cs"
     "$package/Editor/EditorToolWidgets.cs"
     "$package/Editor/GuiPerformanceWindow.cs"
+    "$package/Editor/PublicApiSnapshot.cs"
 )
 & dotnet $compiler -nologo -target:library -langversion:9.0 "-out:$editor/LumaFlow.Preview.Compile.dll" $references $previewSources
 if ($LASTEXITCODE) { throw 'Preview compilation failed.' }
