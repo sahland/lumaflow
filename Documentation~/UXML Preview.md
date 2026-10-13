@@ -35,7 +35,13 @@ window adopts that application's source and connects its edit-mode snapshot.
 
 ### One-button scene setup
 
-Press **Автонастройка сцены** in **Tools > LumaFlow > UXML**, outside Play Mode:
+Use **Preview in Game View** to enable or disable scene previews. Turning it off
+immediately releases live Game mounts and restores the original document asset;
+the preview inside LumaFlow UXML remains available. This preference is saved per
+project across assembly reloads and Editor restarts, and does not disable the
+runtime application in Play Mode. Re-enable it to restore connected scene previews.
+
+Press **Auto setup scene** in **Tools > LumaFlow > UXML**, outside Play Mode:
 
 1. Existing AppBootstrap, UIDocument and Camera components in the active scene
    are reused. Missing objects/components are created, and the bootstrap's empty
@@ -95,10 +101,10 @@ not the reusable generated assets.
 
 Changing serialized preview data also regenerates automatically. The factory
 asset has an **Auto Generate** checkbox. Disable it to opt out, then use
-**Tools > LumaFlow > Regenerate All UXML Previews** when a manual refresh is
-needed. The global generator does not require the preview window to be open.
-Editing one preview asset queues only that asset; a domain reload or the manual
-menu command regenerates all enabled asset factories and discovered code
+**Generate now** in the UXML window when a manual refresh is needed. Automatic
+generation does not require the preview window to be open.
+Editing one preview asset queues only that asset; a domain reload
+regenerates all enabled asset factories and discovered code
 factories. Repeated imports are coalesced into one delayed generation pass.
 
 Generation is transactional from the author's point of view: LumaFlow finishes
@@ -204,9 +210,30 @@ selectors instead of being duplicated into the UXML hierarchy.
 The snapshot does not serialize callbacks, reactive subscriptions, hover
 transitions or game logic. Editing a generated control does not write back to
 LumaFlow state. Unsupported native element/style types, arbitrary Native
-wrappers and animation nodes fail explicitly. Dropdown display labels cannot
+wrappers fail explicitly. `AnimatedStyle<T>` and `TweenAnimationBuilder<T>` export
+their final values (including `AnimationBehavior.Preserve`) without running animation
+timers or completion callbacks. Dropdown display labels cannot
 contain commas because UI Toolkit's UXML list attribute uses commas as separators.
 Inherited panel styling depends on the receiving panel's theme.
+
+When a source contains unsupported native controls or procedural styles, the
+window and its connected scene `UIDocument` automatically use **Live edit-mode
+preview (not UXML)** instead. This mounts the pure preview factory through
+LumaFlow, preserving custom drawing and gradients; it does not serialize them.
+Initial animation snapshots settle without completion callbacks. Local UI
+interaction is enabled, and scene bootstrap lifecycle methods are not invoked.
+Preview factories must omit network, camera, audio and haptics callbacks; the
+framework cannot automatically distinguish these from local navigation callbacks.
+Keep preview factories side-effect-free: LumaFlow cannot sandbox arbitrary C#.
+Live mounts are disposed before Play Mode, assembly reload, scene close or Editor
+shutdown. Save the scene binding to restore the preview after reopening. The
+original runtime `VisualTreeAsset` is preserved. No player code is enabled in Edit
+Mode. If the factory itself throws, the exception is still reported, not hidden.
+Connected live previews accept Game View mouse input (click, drag and wheel),
+including its zoom/letterbox coordinate mapping. Routing is restricted to live
+preview documents and stops before Play Mode. This editor-only bridge uses Unity
+Game View internals; it is validated on Unity 6000.4.5f1. Other Editor versions
+may require an adapter update. Generated UXML remains a non-interactive snapshot.
 
 The generated USS preserves relative lengths. `LayoutBuilder` receives the
 current Game View dimensions during generation. Its selected branch is a static

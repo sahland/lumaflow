@@ -27,7 +27,6 @@ namespace LumaFlow.Editor {
             QueueGeneration();
         }
 
-        [MenuItem("Tools/LumaFlow/Regenerate All UXML Previews")]
         internal static void GenerateAll() {
             ScheduleAll();
         }
@@ -74,7 +73,10 @@ namespace LumaFlow.Editor {
             if (definition == null || !definition.AutoGenerate) return;
             var statusId = "asset:" + guid;
             try {
-                UxmlPreviewGenerator.Generate(definition, out _);
+                try { UxmlPreviewGenerator.Generate(definition, out _); }
+                catch (NotSupportedException) {
+                    UxmlPreviewSceneSync.ApplyLive(statusId, definition.CreatePreviewWidget);
+                }
                 UxmlPreviewStatus.ReportSuccess(statusId);
             } catch (Exception exception) {
                 UxmlPreviewStatus.ReportFailure(statusId, path, exception);
@@ -86,7 +88,10 @@ namespace LumaFlow.Editor {
         private static void GenerateFactory(LumaPreviewFactory factory) {
             var statusId = "code:" + factory.Id;
             try {
-                UxmlPreviewGenerator.Generate(factory, out _);
+                try { UxmlPreviewGenerator.Generate(factory, out _); }
+                catch (NotSupportedException) {
+                    UxmlPreviewSceneSync.ApplyLive(statusId, factory.CreateWidget);
+                }
                 UxmlPreviewStatus.ReportSuccess(statusId);
             } catch (Exception exception) {
                 UxmlPreviewStatus.ReportFailure(statusId, factory.DisplayName, exception);

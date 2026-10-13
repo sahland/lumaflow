@@ -61,7 +61,7 @@ namespace LumaFlow.Editor {
             return method == null ? null : "code:" + LumaPreviewRegistry.RegisterBootstrap(method).Id;
         }
 
-        internal static UIDocument Configure(VisualTreeAsset tree, string sourceId, Type? bootstrapType = null) {
+        internal static UIDocument Configure(VisualTreeAsset? tree, string sourceId, Type? bootstrapType = null) {
             if (EditorApplication.isPlayingOrWillChangePlaymode || PrefabStageUtility.GetCurrentPrefabStage() != null)
                 throw new InvalidOperationException("Auto setup requires a regular scene outside Play Mode.");
             var scene = SceneManager.GetActiveScene();
@@ -93,7 +93,7 @@ namespace LumaFlow.Editor {
                 binding.Configure(sourceId, bootstrap, originalTree);
                 Undo.RecordObject(document, "Configure UIDocument");
                 document.panelSettings = panel;
-                document.visualTreeAsset = tree;
+                document.visualTreeAsset = UxmlPreviewSceneSync.GamePreviewEnabled ? tree : binding.RuntimeTree;
                 var serialized = new SerializedObject(bootstrap);
                 var property = serialized.GetIterator();
                 while (property.NextVisible(true)) {

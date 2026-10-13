@@ -15,7 +15,9 @@ namespace LumaFlow.Editor {
     internal static class PublicApiSnapshot {
         internal const string BaselineFileName = "PublicApiBaseline.txt";
 
+#if LUMAFLOW_DEVELOPMENT
         [MenuItem("Tools/LumaFlow/Validation/Write Public API Baseline")]
+#endif
         private static void WriteBaselineFromMenu() {
             var path = WriteBaseline();
             AssetDatabase.Refresh();

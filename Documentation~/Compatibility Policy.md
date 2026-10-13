@@ -9,7 +9,8 @@ The source repository records exported Runtime types and their public or
 protected members in `PublicApiBaseline.txt`. The compatibility test compares
 the compiled `LumaFlow.Runtime` assembly with that snapshot.
 
-Update the baseline through **Tools > LumaFlow > Validation > Write Public API
+Framework maintainers can enable the `LUMAFLOW_DEVELOPMENT` scripting define to
+update the baseline through **Tools > LumaFlow > Validation > Write Public API
 Baseline** only after reviewing the source change, migration impact and
 changelog entry.
 

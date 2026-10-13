@@ -34,6 +34,7 @@ namespace LumaFlow.Editor {
             if (Path.GetFileName(styleFileName) != styleFileName || !styleFileName.EndsWith(".uss", StringComparison.Ordinal))
                 throw new ArgumentException("Provide a sibling .uss filename.", nameof(styleFileName));
             var root = new VisualElement();
+            using var snapshot = new AnimationSnapshotScope();
             var previewWidget = viewportSize.x > 0f && viewportSize.y > 0f
                 ? new MediaQuery(new MediaQueryData(viewportSize.x, viewportSize.y, disableAnimations: true), widget)
                 : widget;
@@ -48,8 +49,7 @@ namespace LumaFlow.Editor {
         }
 
         private static void ValidateNodes(WidgetDiagnosticsNode node) {
-            if (node.WidgetType == typeof(Native).FullName
-                || node.WidgetType.Contains("Animation") || node.WidgetType.Contains("Animated"))
+            if (node.WidgetType == typeof(Native).FullName)
                 throw new NotSupportedException($"Preview export does not yet support {node.WidgetType}.");
             foreach (var child in node.Children) ValidateNodes(child);
         }
@@ -202,6 +202,11 @@ namespace LumaFlow.Editor {
                 case Color color: return $"rgba({Mathf.RoundToInt(color.r * 255)}, {Mathf.RoundToInt(color.g * 255)}, {Mathf.RoundToInt(color.b * 255)}, {color.a.ToString("R", CultureInfo.InvariantCulture)})";
                 case Enum enumeration: return CssName(enumeration.ToString());
                 case Font font: return "url(\"" + AssetUri(font) + "\")";
+                case Background background when background.vectorImage != null:
+                    return "url(\"" + AssetUri(background.vectorImage) + "\")";
+                case Background background when background.texture == null && background.sprite == null && background.renderTexture == null:
+                    return "none";
+                case BackgroundSize size when size.sizeType == BackgroundSizeType.Contain: return "contain";
                 default: throw new NotSupportedException($"Preview export cannot serialize style '{property}' ({value?.GetType().Name}).");
             }
         }
