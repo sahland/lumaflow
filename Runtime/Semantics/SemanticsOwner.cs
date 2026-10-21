@@ -131,8 +131,8 @@ namespace LumaFlow {
 
             private void UpdateActionBindings() {
                 Bind(ref _invokedBound, _properties.OnTap is not null || _properties.OnSelect is not null,
-                    () => Node.invoked += HandleInvoked,
-                    () => Node.invoked -= HandleInvoked);
+                    BindInvoked,
+                    UnbindInvoked);
                 Bind(ref _incrementedBound, _properties.OnIncrease is not null,
                     () => Node.incremented += HandleIncremented,
                     () => Node.incremented -= HandleIncremented);
@@ -148,7 +148,7 @@ namespace LumaFlow {
             }
 
             private void UnbindActions() {
-                if (_invokedBound) Node.invoked -= HandleInvoked;
+                if (_invokedBound) UnbindInvoked();
                 if (_incrementedBound) Node.incremented -= HandleIncremented;
                 if (_decrementedBound) Node.decremented -= HandleDecremented;
                 if (_dismissedBound) Node.dismissed -= HandleDismissed;
@@ -168,11 +168,29 @@ namespace LumaFlow {
                 bound = shouldBind;
             }
 
+            private void BindInvoked() {
+#if UNITY_6000_4_OR_NEWER
+                Node.invoked += HandleInvoked;
+#else
+                Node.selected += HandleInvoked;
+#endif
+            }
+
+            private void UnbindInvoked() {
+#if UNITY_6000_4_OR_NEWER
+                Node.invoked -= HandleInvoked;
+#else
+                Node.selected -= HandleInvoked;
+#endif
+            }
+
             private static AccessibilityState ResolveState(SemanticsProperties properties) {
                 var state = AccessibilityState.None;
                 if (properties.Enabled == false) state |= AccessibilityState.Disabled;
                 if (properties.Checked == true || properties.Selected == true) state |= AccessibilityState.Selected;
+#if UNITY_6000_4_OR_NEWER
                 if (properties.Expanded == true) state |= AccessibilityState.Expanded;
+#endif
                 return state;
             }
 
@@ -180,17 +198,25 @@ namespace LumaFlow {
                 return role switch {
                     SemanticsRole.Button => AccessibilityRole.Button,
                     SemanticsRole.Toggle => AccessibilityRole.Toggle,
+#if UNITY_6000_4_OR_NEWER
                     SemanticsRole.TextField => AccessibilityRole.TextField,
+                    SemanticsRole.Dropdown => AccessibilityRole.Dropdown,
+                    SemanticsRole.ScrollView => AccessibilityRole.ScrollView,
+                    SemanticsRole.Container => AccessibilityRole.Container,
+                    SemanticsRole.Tab => AccessibilityRole.TabButton,
+#else
+                    SemanticsRole.TextField => AccessibilityRole.None,
+                    SemanticsRole.Dropdown => AccessibilityRole.Button,
+                    SemanticsRole.ScrollView => AccessibilityRole.None,
+                    SemanticsRole.Container => AccessibilityRole.None,
+                    SemanticsRole.Tab => AccessibilityRole.Button,
+#endif
                     SemanticsRole.SearchField => AccessibilityRole.SearchField,
                     SemanticsRole.Slider => AccessibilityRole.Slider,
-                    SemanticsRole.Dropdown => AccessibilityRole.Dropdown,
                     SemanticsRole.Image => AccessibilityRole.Image,
                     SemanticsRole.Header => AccessibilityRole.Header,
                     SemanticsRole.StaticText => AccessibilityRole.StaticText,
-                    SemanticsRole.ScrollView => AccessibilityRole.ScrollView,
-                    SemanticsRole.Container => AccessibilityRole.Container,
                     SemanticsRole.TabBar => AccessibilityRole.TabBar,
-                    SemanticsRole.Tab => AccessibilityRole.TabButton,
                     SemanticsRole.KeyboardKey => AccessibilityRole.KeyboardKey,
                     _ => AccessibilityRole.None
                 };

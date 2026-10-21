@@ -4,6 +4,9 @@ All notable changes to LumaFlow are documented in this file.
 
 ## [Unreleased]
 
+- Fixed Unity 6.2 accessibility compilation: use the supported activation event
+  and fallback roles when the newer native accessibility API is unavailable.
+
 - Added one-button scene setup in LumaFlow UXML: reuse/create UIDocument,
   AppBootstrap and Camera, preserve existing PanelSettings, wire document
   references, and persist edit-mode preview connections with Undo support.

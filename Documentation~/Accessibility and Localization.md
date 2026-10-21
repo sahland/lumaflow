@@ -1,5 +1,11 @@
 # Accessibility, scalable text, and localization
 
+On Unity versions older than 6.4, activation uses `AccessibilityNode.selected`.
+Dropdowns and tabs use the native Button role; text fields, scroll views and
+containers use None because the corresponding native roles are unavailable.
+Labels, values, hints, actions and child nodes remain available. The native
+Expanded state is emitted only on Unity 6.4 or newer.
+
 Accessibility and localization use three independent tree-scoped contracts:
 semantic annotations, focus and keyboard behavior, and locale-specific
 resources. None requires the optional Unity Localization package.
