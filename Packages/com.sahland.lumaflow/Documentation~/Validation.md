@@ -3,10 +3,10 @@
 This document describes the maintainer release checks. It is not included in
 the published package.
 
-Current track: `0.2.0-preview.1` (unreleased). Targeted Editor checks on
+Current track: `0.2.0` (unreleased). Targeted Editor checks on
 6000.2.2f1 and 6000.4.5f1 are not a substitute for this release checklist.
-The full Player/device qualification below is still outstanding; do not label
-this build stable or RC based only on API-contract tests. See Compatibility
+The full Player/device qualification below is still outstanding; do not infer
+full platform qualification based only on API-contract tests. See Compatibility
 Policy.md for current evidence and support scope.
 
 ## Required checks

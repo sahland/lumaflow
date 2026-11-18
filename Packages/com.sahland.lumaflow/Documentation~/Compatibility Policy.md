@@ -1,12 +1,12 @@
 # Compatibility and breaking changes
 
-LumaFlow remains a preview release, but its existing Runtime API is now frozen
+LumaFlow uses a standard package version; its existing Runtime API is frozen
 as contract v1. This is a compatibility commitment, not a claim that every
 widget, platform or Editor workflow is production-qualified.
 
 ## Current release status
 
-Package version: `0.2.0-preview.1` (unreleased working-tree version).
+Package version: `0.2.0` (unreleased working-tree version).
 The package version, Runtime contract version and Unity Editor version describe
 different things; Runtime contract v1 does not mean package release 1.0.
 

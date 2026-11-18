@@ -508,8 +508,8 @@ Treat stable public assembly names deliberately, especially after 1.0.
 
 # 32. Pre-1.0 Policy
 
-The current package track is `0.2.0-preview.N`, with frozen Runtime API contract
-v1. Preview status does not permit breaking that contract. The authoritative
+The current package track is `0.2.0`, with frozen Runtime API contract
+v1. Version changes do not permit breaking that contract. The authoritative
 policy is `Packages/com.sahland.lumaflow/Documentation~/Compatibility Policy.md`.
 
 A deliberate breaking release needs explicit contract-policy approval, a major

@@ -1,8 +1,8 @@
 {
   "name": "com.sahland.lumaflow",
-  "version": "0.2.0-preview.1",
+  "version": "0.2.0",
   "displayName": "LumaFlow",
-  "description": "Preview declarative C# UI framework for Unity UI Toolkit. Runtime API contract v1 is frozen; Editor tooling and platform qualification remain in preview.",
+  "description": "Declarative C# UI framework for Unity UI Toolkit with a frozen Runtime API v1 contract. See the compatibility policy for validation and platform support.",
   "unity": "6000.2",
   "unityRelease": "2f1",
   "dependencies": {

@@ -2,7 +2,7 @@
 
 All notable changes to LumaFlow are documented in this file.
 
-## [0.2.0-preview.1] - Unreleased
+## [0.2.0] - Unreleased
 
 - Ignore bubbled child/label value events when binding a native value control
   or editing a TextField, so caption updates cannot overwrite its value.
@@ -15,7 +15,7 @@ All notable changes to LumaFlow are documented in this file.
   functional suites and both archive channels per Editor, strict NUnit evidence,
   unique artifacts and an aggregate validation gate.
 
-- Aligned package metadata with preview guarantees and the frozen Runtime API v1
+- Aligned package metadata with documented validation scope and the frozen Runtime API v1
   contract. Minimum declared Editor is now 6000.2.2f1; 6000.0 is not qualified.
   This working-tree version has not been published as a release or registry tag.
 

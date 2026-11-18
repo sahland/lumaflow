@@ -10,10 +10,10 @@ PACKAGE = ROOT / "Packages/com.sahland.lumaflow"
 
 
 class ReleaseMetadataTests(unittest.TestCase):
-    def test_current_manifest_stays_on_reviewed_preview_track(self):
+    def test_current_manifest_uses_agreed_release_version(self):
         manifest = json.loads((PACKAGE / "package.json").read_text(encoding="utf-8"))
-        self.assertRegex(manifest["version"], r"^0\.\d+\.\d+-preview\.[1-9]\d*$",
-                         "Changing release tier requires explicit qualification and release-policy review.")
+        self.assertEqual(manifest["version"], "0.2.0",
+                         "The agreed package version must not contain a preview suffix.")
         self.assertEqual(manifest["unity"], "6000.2")
         self.assertEqual(manifest["unityRelease"], "2f1")
         version = manifest["version"]

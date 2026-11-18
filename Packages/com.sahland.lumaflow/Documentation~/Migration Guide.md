@@ -1,10 +1,10 @@
 # Migration guide
 
-LumaFlow `0.2.0-preview.1` is an unreleased preview package with a frozen Runtime
-API v1 contract. Preview status does not permit silently breaking that contract.
+LumaFlow `0.2.0` is an unreleased package with a frozen Runtime
+API v1 contract. Version changes do not permit silently breaking that contract.
 Historical migrations below predate the freeze unless stated otherwise.
 
-## Moving to 0.2.0-preview.1
+## Moving to 0.2.0
 
 Package metadata now declares Unity 6000.2.2f1 as the minimum instead of 6000.0.
 Use a qualified Editor before updating; no support for 6000.0/6000.1 is claimed.

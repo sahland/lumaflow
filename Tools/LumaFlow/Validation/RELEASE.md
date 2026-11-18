@@ -1,7 +1,7 @@
 # Release payloads
 
-Current working-tree version is `0.2.0-preview.1`, not a published stable release
-or an RC. Runtime API contract v1 is frozen independently of package maturity.
+Current version is `0.2.0`, pending publication. Runtime API contract v1 is frozen;
+platform qualification is documented separately from the package version.
 Minimum declared Editor: 6000.2.2f1. Refer to the package compatibility policy
 for evidence scope and the checks required before changing the release tier.
 
@@ -77,7 +77,7 @@ ProjectSettings, URP packages or the embedded framework. The archive dependency
 is relative so the project can move into a GameCI container. To reproduce locally:
 
 ```sh
-python Tools/LumaFlow/Validation/prepare_tarball_project.py --archive Artifacts/release/com.sahland.lumaflow-0.2.0-preview.1-asset-store.tgz --output Artifacts/consumer --unity 6000.4.5f1 --channel asset-store
+python Tools/LumaFlow/Validation/prepare_tarball_project.py --archive Artifacts/release/com.sahland.lumaflow-0.2.0-asset-store.tgz --output Artifacts/consumer --unity 6000.4.5f1 --channel asset-store
 ```
 
 Run Unity Test Runner for both modes in that project. Windows validation requires

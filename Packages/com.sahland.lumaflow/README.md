@@ -21,13 +21,13 @@ See [Native UI Bindings](Documentation~/Native%20UI%20Bindings.md).
 The existing Runtime API is frozen as contract v1. See the
 [compatibility policy](Documentation~/Compatibility%20Policy.md) for supported
 surface, extension rules and migration requirements. This does not mark the
-entire preview release as production-qualified.
+entire release as production-qualified.
 
 - Unity 6.2.2f1 or newer; specifically checked: 6000.2.2f1 and 6000.4.5f1
 - Unity UI Toolkit
 
-Current package: `0.2.0-preview.1` (unreleased). Runtime API compatibility is
-protected by contract v1; the package is not a fully qualified stable release.
+Current package: `0.2.0` (unreleased). Runtime API compatibility is
+protected by contract v1; platform qualification has the scope documented below.
 See the [validation scope](Documentation~/Compatibility%20Policy.md#current-release-status).
 
 The Runtime assembly does not reference `UnityEditor` or a render-pipeline
@@ -191,7 +191,7 @@ Start with [Getting Started](Documentation~/Getting%20Started.md), then use the
 
 ## Versioning
 
-The package is on the `0.2.0-preview.N` track. Preview status does not waive the
+The package version is `0.2.0`. Version changes do not waive the
 frozen Runtime API v1 contract. Editor extension APIs and unvalidated platforms
 are not covered by a stable-release guarantee. See the compatibility policy and
 migration guide before updating. Changing local metadata does not publish a release.
