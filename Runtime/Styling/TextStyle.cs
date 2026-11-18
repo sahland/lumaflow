@@ -245,7 +245,28 @@ namespace LumaFlow {
             SwitchTheme? switchTheme = null,
             SliderTheme? sliderTheme = null,
             TabBarTheme? tabBarTheme = null,
-            SegmentedControlTheme? segmentedControlTheme = null) {
+            SegmentedControlTheme? segmentedControlTheme = null)
+            : this(colors, typography, spacing, radius, buttonTheme, iconTheme,
+                textFieldTheme, dropdownTheme, progressIndicatorTheme, checkboxTheme,
+                radioTheme, switchTheme, sliderTheme, tabBarTheme, segmentedControlTheme, null) { }
+
+        public ThemeData(
+            ColorScheme colors,
+            TypographyTheme typography,
+            SpacingTheme spacing,
+            RadiusTheme radius,
+            ButtonTheme buttonTheme,
+            IconThemeData? iconTheme,
+            TextFieldTheme? textFieldTheme,
+            DropdownTheme? dropdownTheme,
+            ProgressIndicatorTheme? progressIndicatorTheme,
+            CheckboxTheme? checkboxTheme,
+            RadioTheme? radioTheme,
+            SwitchTheme? switchTheme,
+            SliderTheme? sliderTheme,
+            TabBarTheme? tabBarTheme,
+            SegmentedControlTheme? segmentedControlTheme,
+            DataTableTheme? dataTableTheme) {
             Colors = colors ?? throw new ArgumentNullException(nameof(colors));
             Typography = typography ?? throw new ArgumentNullException(nameof(typography));
             Spacing = spacing ?? throw new ArgumentNullException(nameof(spacing));
@@ -285,6 +306,7 @@ namespace LumaFlow {
             TabBarTheme = tabBarTheme ?? new TabBarTheme(new TabBarStyle());
             SegmentedControlTheme = segmentedControlTheme
                 ?? new SegmentedControlTheme(new SegmentedControlStyle());
+            DataTableTheme = dataTableTheme ?? new DataTableTheme(new DataTableStyle());
         }
 
         public ColorScheme Colors { get; }
@@ -302,6 +324,7 @@ namespace LumaFlow {
         public SliderTheme SliderTheme { get; }
         public TabBarTheme TabBarTheme { get; }
         public SegmentedControlTheme SegmentedControlTheme { get; }
+        public DataTableTheme DataTableTheme { get; }
 
         /// <summary>
         /// Creates a theme with selected values replaced while retaining every
@@ -322,7 +345,32 @@ namespace LumaFlow {
             SwitchTheme? switchTheme = null,
             SliderTheme? sliderTheme = null,
             TabBarTheme? tabBarTheme = null,
-            SegmentedControlTheme? segmentedControlTheme = null) => new(
+            SegmentedControlTheme? segmentedControlTheme = null) => CopyWith(
+                colors, typography, spacing, radius, buttonTheme, iconTheme,
+                textFieldTheme, dropdownTheme, progressIndicatorTheme, checkboxTheme,
+                radioTheme, switchTheme, sliderTheme, tabBarTheme, segmentedControlTheme, null);
+
+        public ThemeData WithDataTableTheme(DataTableTheme dataTableTheme) => CopyWith(
+            null, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, dataTableTheme ?? throw new ArgumentNullException(nameof(dataTableTheme)));
+
+        public ThemeData CopyWith(
+            ColorScheme? colors,
+            TypographyTheme? typography,
+            SpacingTheme? spacing,
+            RadiusTheme? radius,
+            ButtonTheme? buttonTheme,
+            IconThemeData? iconTheme,
+            TextFieldTheme? textFieldTheme,
+            DropdownTheme? dropdownTheme,
+            ProgressIndicatorTheme? progressIndicatorTheme,
+            CheckboxTheme? checkboxTheme,
+            RadioTheme? radioTheme,
+            SwitchTheme? switchTheme,
+            SliderTheme? sliderTheme,
+            TabBarTheme? tabBarTheme,
+            SegmentedControlTheme? segmentedControlTheme,
+            DataTableTheme? dataTableTheme) => new(
                 colors ?? Colors,
                 typography ?? Typography,
                 spacing ?? Spacing,
@@ -337,7 +385,8 @@ namespace LumaFlow {
                 switchTheme ?? SwitchTheme,
                 sliderTheme ?? SliderTheme,
                 tabBarTheme ?? TabBarTheme,
-                segmentedControlTheme ?? SegmentedControlTheme);
+                segmentedControlTheme ?? SegmentedControlTheme,
+                dataTableTheme ?? DataTableTheme);
     }
 
     /// <summary>

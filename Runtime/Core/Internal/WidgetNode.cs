@@ -269,6 +269,7 @@ namespace LumaFlow {
             ResetInheritedDependencies();
             try {
                 OnInheritedChanged(scope.Aspect);
+                IdentifiedWidgetNode.RestorePublicName(Element);
             } catch {
                 ResetInheritedDependencies();
                 foreach (var dependency in previousDependencies) {
@@ -312,6 +313,7 @@ namespace LumaFlow {
 
         protected void UpdateWidget(Widget nextWidget) {
             Widget = nextWidget ?? throw new ArgumentNullException(nameof(nextWidget));
+            IdentifiedWidgetNode.RestorePublicName(Element);
             RefreshSemantics();
         }
 
@@ -546,8 +548,16 @@ namespace LumaFlow {
         protected abstract VisualElement? CreateElement(BuildContext context);
 
         protected void AdoptNativeElement(VisualElement element) {
-            Element = element ?? throw new ArgumentNullException(nameof(element));
+            if (element is null) throw new ArgumentNullException(nameof(element));
+            var previous = Element;
+            if (ReferenceEquals(previous, element)) return;
+            Element = element;
+            OnNativeElementChanged(previous, element);
+            if (_parent is ITransparentWidgetNode && ReferenceEquals(_parent.Element, previous))
+                _parent.AdoptNativeElement(element);
         }
+
+        protected virtual void OnNativeElementChanged(VisualElement? previous, VisualElement current) { }
 
         protected virtual void OnMounted() {
         }
