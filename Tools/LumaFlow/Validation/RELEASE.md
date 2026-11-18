@@ -1,5 +1,10 @@
 # Release payloads
 
+Current working-tree version is `0.2.0-preview.1`, not a published stable release
+or an RC. Runtime API contract v1 is frozen independently of package maturity.
+Minimum declared Editor: 6000.2.2f1. Refer to the package compatibility policy
+for evidence scope and the checks required before changing the release tier.
+
 Build from a committed development revision, using a new output directory:
 
 ```sh
@@ -33,19 +38,46 @@ Do not merge the project root into `main`; promotion must export the package.
 
 ## CI validation
 
-The workflow keeps the full development-project suite on Unity 6000.4.5f1.
-Separate clean Built-In jobs install each channel archive on Unity 6000.0.0f1
+The reviewed matrix lives in `Tools/LumaFlow/Validation/unity-matrix.json`:
+6000.2.2f1 and 6000.4.5f1, each with EditMode and PlayMode functional suites.
+Both workflow matrices consume that same file through the `unity-matrix` job.
+`prepare_suite_project.py` copies the embedded package, complete test sources
+and sample into a new Built-In project with an exact ProjectVersion.txt. It does
+not downgrade the development project or copy its URP/scene/settings assets.
+Functional jobs select `LumaFlow.Editor.Tests` or `LumaFlow.Runtime.Tests` by
+mode; performance suites are not executed by these jobs and need their own
+Player/device budget checks. XML evidence must contain the expected assembly
+with actual passing cases; failed, skipped, inconclusive or empty runs fail.
+
+Separate clean Built-In jobs install each channel archive on Unity 6000.2.2f1
 and 6000.4.5f1. Each runs EditMode and PlayMode smoke tests and builds a standalone
 development player from a minimal scene. This is compilation/build evidence, not
 a visual or launched-player test. The generated player and test reports are
 uploaded. Missing smoke results fail the job, including zero-test runs.
+
+This produces four functional jobs and four archive-consumer jobs. Logs and
+result artifact names include version and mode/channel to avoid collisions.
+`Unity validation gate` runs even after a prerequisite fails and requires every
+matrix, activation, payload and icon job to succeed. Configure this exact check
+as required in repository branch protection; editing this workflow does not
+change GitHub rules. No `continue-on-error` or automatic retry hides failures.
+
+To inspect/prepare the matrix locally without launching Unity:
+
+```sh
+python Tools/LumaFlow/Validation/unity_matrix.py
+python Tools/LumaFlow/Validation/prepare_suite_project.py --output Artifacts/suite --unity 6000.2.2f1
+```
+
+Workflow configuration and local Python tests do not establish that hosted
+Unity jobs passed. Preserve the actual GitHub run URL and artifacts as evidence.
 
 `prepare_tarball_project.py` creates the consumer without copying development
 ProjectSettings, URP packages or the embedded framework. The archive dependency
 is relative so the project can move into a GameCI container. To reproduce locally:
 
 ```sh
-python Tools/LumaFlow/Validation/prepare_tarball_project.py --archive Artifacts/release/com.sahland.lumaflow-0.1.1-asset-store.tgz --output Artifacts/consumer --unity 6000.4.5f1 --channel asset-store
+python Tools/LumaFlow/Validation/prepare_tarball_project.py --archive Artifacts/release/com.sahland.lumaflow-0.2.0-preview.1-asset-store.tgz --output Artifacts/consumer --unity 6000.4.5f1 --channel asset-store
 ```
 
 Run Unity Test Runner for both modes in that project. Windows validation requires

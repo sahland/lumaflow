@@ -13,9 +13,11 @@ def check(directory):
         root = ElementTree.parse(path).getroot()
         if root.tag != "test-run":
             continue
-        if root.get("result") != "Passed" or int(root.get("failed", "0")):
+        if root.get("result") != "Passed" or any(int(root.get(name, "0")) for name in ("failed", "skipped", "inconclusive")):
             raise ValueError(f"Unity suite did not pass: {path}")
         for case in root.iter("test-case"):
+            if case.get("result") != "Passed":
+                raise ValueError(f"Non-passing smoke test: {path}")
             if case.get("result") == "Passed":
                 passed.add(case.get("methodname", case.get("name")))
     if EXPECTED - passed:

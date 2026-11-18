@@ -15,6 +15,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  unity-matrix:
+    name: Reviewed Unity matrix
+    runs-on: ubuntu-latest
+    outputs:
+      unity: ${{ steps.plan.outputs.unity }}
+      testMode: ${{ steps.plan.outputs.testMode }}
+      channel: ${{ steps.plan.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: plan
+        run: python Tools/LumaFlow/Validation/unity_matrix.py --github-output "$GITHUB_OUTPUT"
+
   unity-license-preflight:
     name: Unity activation configuration
     runs-on: ubuntu-latest
@@ -37,17 +52,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Test packaging rules
         run: python -m unittest discover -s Tools/LumaFlow/Validation -p 'test_*.py'
+      - name: Protect frozen Runtime API contracts
+        run: python Tools/LumaFlow/Validation/check_api_contract.py --base "${{ github.event.pull_request.base.sha || github.event.before }}"
       - name: Build and inspect both payloads
         run: python Tools/LumaFlow/Validation/package_release.py --output Artifacts/release
       - uses: actions/upload-artifact@v4
         with:
           name: release-payloads
           path: Artifacts/release
+          if-no-files-found: error
 
   icon-validation:
     name: Icon catalog and CC0 provenance
@@ -65,14 +85,14 @@ jobs:
 
   clean-package-tests:
     name: Built-In ${{ matrix.unity }} ${{ matrix.channel }}
-    needs: [release-payloads, unity-license-preflight]
+    needs: [unity-matrix, release-payloads, unity-license-preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        unity: ['6000.0.0f1', '6000.4.5f1']
-        channel: [git-upm, asset-store]
+        unity: ${{ fromJSON(needs.unity-matrix.outputs.unity) }}
+        channel: ${{ fromJSON(needs.unity-matrix.outputs.channel) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -112,22 +132,29 @@ jobs:
         if: always()
         with:
           name: clean-${{ matrix.unity }}-${{ matrix.channel }}
+          if-no-files-found: error
           path: |
             artifacts/clean-${{ matrix.unity }}-${{ matrix.channel }}
             Artifacts/consumer/Artifacts/PlayerSmoke
 
   package-tests:
-    needs: unity-license-preflight
-    name: Unity 6000.4.5f1 ${{ matrix.testMode }}
+    needs: [unity-matrix, unity-license-preflight]
+    name: Functional ${{ matrix.unity }} ${{ matrix.testMode }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        testMode: [editmode, playmode]
+        unity: ${{ fromJSON(needs.unity-matrix.outputs.unity) }}
+        testMode: ${{ fromJSON(needs.unity-matrix.outputs.testMode) }}
 
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare isolated functional suites
+        run: python Tools/LumaFlow/Validation/prepare_suite_project.py --output Artifacts/suite --unity "${{ matrix.unity }}"
 
       - name: Run Unity tests
         id: tests
@@ -138,16 +165,41 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         with:
-          projectPath: .
-          unityVersion: 6000.4.5f1
+          projectPath: Artifacts/suite
+          unityVersion: ${{ matrix.unity }}
           testMode: ${{ matrix.testMode }}
-          artifactsPath: artifacts/${{ matrix.testMode }}
+          customParameters: -assemblyNames ${{ matrix.testMode == 'editmode' && 'LumaFlow.Editor.Tests' || 'LumaFlow.Runtime.Tests' }}
+          artifactsPath: artifacts/suite-${{ matrix.unity }}-${{ matrix.testMode }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          checkName: LumaFlow ${{ matrix.testMode }}
+          checkName: Functional ${{ matrix.unity }} ${{ matrix.testMode }}
+
+      - name: Require actual functional test evidence
+        if: always()
+        run: python Tools/LumaFlow/Validation/check_suite_results.py artifacts/suite-${{ matrix.unity }}-${{ matrix.testMode }} --mode "${{ matrix.testMode }}"
 
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unity-${{ matrix.testMode }}-results
-          path: ${{ steps.tests.outputs.artifactsPath }}
+          name: suite-${{ matrix.unity }}-${{ matrix.testMode }}-results
+          path: artifacts/suite-${{ matrix.unity }}-${{ matrix.testMode }}
+          if-no-files-found: error
+
+  unity-validation-gate:
+    name: Unity validation gate
+    if: always()
+    needs: [unity-matrix, unity-license-preflight, release-payloads, icon-validation, clean-package-tests, package-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every matrix and prerequisite job to succeed
+        env:
+          NEEDS_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          results = json.loads(os.environ["NEEDS_RESULTS"])
+          failed = [name for name, job in results.items() if job["result"] != "success"]
+          if not results or failed:
+              raise SystemExit("Required CI jobs not successful: " + ", ".join(failed))
+          print("Every required Unity matrix job succeeded.")
+          PY

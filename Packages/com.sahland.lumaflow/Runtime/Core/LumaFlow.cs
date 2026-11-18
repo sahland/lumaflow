@@ -45,6 +45,7 @@ namespace LumaFlow {
                     semantics: semantics);
                 rootNode.Mount(parent: null, context, host);
                 root.Add(host);
+                NativeView.NotifyChanged(root);
                 return new MountHandle(rootNode, host, root, semantics, context);
             } catch (Exception mountFailure) {
                 Exception? cleanupFailure = null;

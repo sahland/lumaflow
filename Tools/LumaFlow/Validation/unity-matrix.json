@@ -1,0 +1,5 @@
+{
+  "unity": ["6000.2.2f1", "6000.4.5f1"],
+  "testMode": ["editmode", "playmode"],
+  "channel": ["git-upm", "asset-store"]
+}

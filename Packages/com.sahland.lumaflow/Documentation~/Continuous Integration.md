@@ -50,7 +50,29 @@ logs and test results for release evidence.
 
 ## Hosted validation
 
-The repository workflow runs EditMode and PlayMode package tests in an isolated
-Unity environment and uploads result files even when a suite fails. Windows
-IL2CPP and device checks run separately because hosted EditMode/PlayMode jobs do
-not validate a shipped Player.
+The reviewed configuration is `Tools/LumaFlow/Validation/unity-matrix.json`.
+Both workflow matrices read it; individual jobs must not hardcode a different
+Editor. Current requirements:
+
+| Editor | Functional suites | Clean archive consumers |
+| --- | --- | --- |
+| 6000.2.2f1 | EditMode + PlayMode | Git-UPM + Asset Store |
+| 6000.4.5f1 | EditMode + PlayMode | Git-UPM + Asset Store |
+
+Functional tests run from the complete Editor/Runtime test assemblies in fresh
+Built-In projects with the exact selected Editor version, not from a downgraded
+development project. Performance-test assemblies are compiled but excluded from
+these functional jobs; representative Player performance requires separate checks.
+Consumer jobs run both smoke modes and build a minimal Linux standalone Player.
+That build is not a launched-player test or Windows/Android IL2CPP qualification.
+
+XML must show actual passing tests from the expected assembly or all required
+smoke cases. Missing, empty, failed, skipped and inconclusive results fail checks.
+Artifacts contain the exact Editor and mode/channel in their names. A stable
+`Unity validation gate` requires both matrices and prerequisite jobs to succeed;
+select that check explicitly in branch protection. GitHub settings are not changed
+by the workflow. Missing licensing inputs fail validation instead of skipping it
+as success. Configuration alone is not evidence that a hosted run passed.
+
+Windows IL2CPP and device checks remain separate and unqualified until executed.
+Runner input syntax follows the [GameCI Test Runner documentation](https://game.ci/docs/github/test-runner/).

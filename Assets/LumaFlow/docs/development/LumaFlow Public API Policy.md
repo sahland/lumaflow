@@ -508,11 +508,12 @@ Treat stable public assembly names deliberately, especially after 1.0.
 
 # 32. Pre-1.0 Policy
 
-Before `1.0.0`, LumaFlow prioritizes reaching a clean architecture over indefinite backward compatibility.
+The current package track is `0.2.0-preview.N`, with frozen Runtime API contract
+v1. Preview status does not permit breaking that contract. The authoritative
+policy is `Packages/com.sahland.lumaflow/Documentation~/Compatibility Policy.md`.
 
-Breaking changes are allowed when they materially improve the framework.
-
-However every breaking change should be:
+A deliberate breaking release needs explicit contract-policy approval, a major
+version and migration guidance. It must be:
 
 ```text
 intentional
@@ -522,7 +523,8 @@ reflected in samples
 reflected in user documentation
 ```
 
-Do not accumulate compatibility shims for every early prototype API.
+Keep supported signatures callable; new optional arguments must not replace an
+existing CLR signature. Editor extension APIs remain outside the frozen contract.
 
 ---
 

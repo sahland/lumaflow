@@ -10,6 +10,12 @@
 
 ## Guides
 
+- [Native UI Bindings](Native%20UI%20Bindings.md) — native IDs, typed queries,
+  custom widgets and lifecycle-safe controller subscriptions.
+
+- [Tables](Tables.md) — shared column layout, data tables, selection,
+  sorting callbacks and paginated data sources.
+
 - [Controls and UI Kit](Controls%20and%20UI%20Kit.md) — controls, tabs,
   segmented controls, styling and component themes.
 - [Accessibility and Localization](Accessibility%20and%20Localization.md) —

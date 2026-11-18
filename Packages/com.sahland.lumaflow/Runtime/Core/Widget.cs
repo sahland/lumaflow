@@ -24,6 +24,8 @@ namespace LumaFlow {
         /// </summary>
         public Widget WithKey(WidgetKey key) => new KeyedSubtree(key, this);
 
+        public Widget WithId(string id) => new IdentifiedWidget(id, this is IdentifiedWidget identified ? identified.Child : this);
+
         internal abstract WidgetNode CreateNode();
     }
 

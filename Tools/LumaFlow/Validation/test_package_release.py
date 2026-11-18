@@ -21,6 +21,9 @@ class ReleaseTests(unittest.TestCase):
             path = root / 'results.xml'
             path.write_text(f'<test-run result="Passed">{cases}</test-run>', encoding='utf-8')
             check(root)
+            path.write_text(f'<test-run result="Passed" skipped="1">{cases}</test-run>', encoding='utf-8')
+            with self.assertRaises(ValueError):
+                check(root)
             path.write_text(f'<test-run result="Failed">{cases}</test-run>', encoding='utf-8')
             with self.assertRaises(ValueError):
                 check(root)
@@ -57,7 +60,7 @@ class ReleaseTests(unittest.TestCase):
             archive = root / "input.tgz"
             archive.write_bytes(encode(self.files))
             destination = root / "consumer"
-            prepare(archive, destination, "6000.0.0f1", "asset-store")
+            prepare(archive, destination, "6000.2.2f1", "asset-store")
             dependencies = json.loads((destination / "Packages/manifest.json").read_text())["dependencies"]
             self.assertEqual("file:./lumaflow.tgz", dependencies["com.sahland.lumaflow"])
             self.assertFalse(any("render-pipelines" in name for name in dependencies))
@@ -65,7 +68,7 @@ class ReleaseTests(unittest.TestCase):
             self.assertTrue((destination / "Assets/Samples/Getting Started/LumaFlowCounterSample.cs").is_file())
             self.assertTrue((destination / "Assets/TarballTests/LumaFlowTarballEditorSmokeTests.cs").is_file())
             with self.assertRaises(FileExistsError):
-                prepare(archive, destination, "6000.0.0f1", "asset-store")
+                prepare(archive, destination, "6000.2.2f1", "asset-store")
 
     def test_rejects_unexpected_and_traversal_entries(self):
         for name in ("../escape", "Runtime/../../escape", "Tools/private.txt", "Runtime/.env"):

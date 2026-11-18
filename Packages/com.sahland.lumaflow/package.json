@@ -1,9 +1,10 @@
 {
   "name": "com.sahland.lumaflow",
-  "version": "0.1.1",
+  "version": "0.2.0-preview.1",
   "displayName": "LumaFlow",
-  "description": "A declarative, reactive C# UI framework built on Unity UI Toolkit.",
-  "unity": "6000.0",
+  "description": "Preview declarative C# UI framework for Unity UI Toolkit. Runtime API contract v1 is frozen; Editor tooling and platform qualification remain in preview.",
+  "unity": "6000.2",
+  "unityRelease": "2f1",
   "dependencies": {
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.uielements": "1.0.0",
@@ -14,6 +15,11 @@
       "displayName": "Getting Started",
       "description": "A minimal stateful LumaFlow counter mounted into a UIDocument.",
       "path": "Samples~/Getting Started"
+    },
+    {
+      "displayName": "Tables",
+      "description": "A sortable, selectable paginated table with an application-owned data source.",
+      "path": "Samples~/Tables"
     }
   ],
   "author": {
