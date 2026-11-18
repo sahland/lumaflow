@@ -2,7 +2,35 @@
 
 All notable changes to LumaFlow are documented in this file.
 
-## [Unreleased]
+## [0.2.0] - Unreleased
+
+- Ignore bubbled child/label value events when binding a native value control
+  or editing a TextField, so caption updates cannot overwrite its value.
+
+- Added native element IDs and NativeView typed queries/lifecycle-safe bindings.
+  Identified composite roots follow reactive replacements without changing
+  reconciliation keys or application state ownership.
+
+- Centralized exact Unity 6000.2.2f1/6000.4.5f1 CI pins; required isolated
+  functional suites and both archive channels per Editor, strict NUnit evidence,
+  unique artifacts and an aggregate validation gate.
+
+- Aligned package metadata with documented validation scope and the frozen Runtime API v1
+  contract. Minimum declared Editor is now 6000.2.2f1; 6000.0 is not qualified.
+  This working-tree version has not been published as a release or registry tag.
+
+- Reduced DataTable native cell wrappers and skipped unchanged immutable rows
+  during updates, including paginated tables. Preserved input identity,
+  controlled selection, styling invalidation and the frozen Runtime API.
+
+- Frozen Runtime API contract v1 with compatibility tests, baseline-write
+  protection and an immutable-contract CI gate. Restored pre-table ThemeData
+  constructor/CopyWith binary signatures; added WithDataTableTheme for styling.
+
+- Added Table layout with shared fixed/flex column widths, keyed rows, cell
+  alignment and borders; DataTable with controlled sort/selection callbacks;
+  PaginatedDataTable with bounded source reads, controlled paging and localized
+  captions; DataTableTheme, documentation and the Tables sample.
 
 - Fixed Unity 6.2 accessibility compilation: use the supported activation event
   and fallback roles when the newer native accessibility API is unavailable.

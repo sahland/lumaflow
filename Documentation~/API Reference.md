@@ -3,6 +3,17 @@
 This page summarizes the supported preview API. Constructor edge cases are
 documented on the corresponding public members.
 
+## Tables
+
+- `Table`, `TableRow`, `TableCell`, `TableCellVerticalAlignment`, `TableBorder`
+- `TableColumnWidth`, `FixedColumnWidth`, `FlexColumnWidth`
+- `DataTable`, `DataColumn`, `DataRow`, `DataCell`, `DataTableStyle`, `DataTableTheme`
+- `PaginatedDataTable`, `DataTableSource`, `DataTableLabels`
+
+Sorting and selection callbacks publish user intent; application code owns the
+data. Pagination reads only visible page rows. See [Tables](Tables.md) for the
+state contract, styling and current limits.
+
 ## Runtime and state
 
 - `LumaFlow.Mount`, `MountHandle`, `Widget`, `WidgetKey`, `KeyedSubtree`

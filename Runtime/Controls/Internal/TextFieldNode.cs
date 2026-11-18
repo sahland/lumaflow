@@ -134,6 +134,7 @@ namespace LumaFlow {
         }
 
         private void OnValueChanged(ChangeEvent<string> changeEvent) {
+            if (!ReferenceEquals(changeEvent.target, _textField)) return;
             HandleValueChanged(changeEvent.newValue);
         }
 
